@@ -45,6 +45,15 @@ export async function GET(request: Request) {
       scope: tokens.scope,
     })
 
+    await storeOAuthToken({
+      userId: user.id,
+      provider: 'google_drive',
+      accessToken: tokens.access_token,
+      refreshToken: tokens.refresh_token,
+      expiresIn: tokens.expires_in,
+      scope: tokens.scope,
+    })
+
     return NextResponse.redirect(`${origin}/settings/integrations?success=google`)
   } catch (err) {
     console.error('Google OAuth error:', err)

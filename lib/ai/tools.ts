@@ -2,20 +2,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { IntegrationProvider } from '@/types/integrations'
 
 export const ALL_TOOLS: Anthropic.Tool[] = [
+  // ── Calendar ──────────────────────────────────────────────────
   {
     name: 'get_calendar_events',
     description: 'Get upcoming calendar events for the user',
     input_schema: {
       type: 'object' as const,
       properties: {
-        days_ahead: {
-          type: 'number',
-          description: 'How many days ahead to look (default: 7)',
-        },
-        max_results: {
-          type: 'number',
-          description: 'Maximum number of events to return (default: 10)',
-        },
+        days_ahead: { type: 'number', description: 'How many days ahead to look (default: 7)' },
+        max_results: { type: 'number', description: 'Max events to return (default: 10)' },
       },
     },
   },
@@ -25,85 +20,13 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Event title' },
-        start: { type: 'string', description: 'Start time in ISO 8601 format' },
-        end: { type: 'string', description: 'End time in ISO 8601 format' },
-        description: { type: 'string', description: 'Event description' },
-        attendees: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Email addresses of attendees',
-        },
+        title: { type: 'string' },
+        start: { type: 'string', description: 'ISO 8601 datetime' },
+        end: { type: 'string', description: 'ISO 8601 datetime' },
+        description: { type: 'string' },
+        attendees: { type: 'array', items: { type: 'string' }, description: 'Email addresses' },
       },
       required: ['title', 'start', 'end'],
-    },
-  },
-  {
-    name: 'search_emails',
-    description: 'Search Gmail messages',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        query: { type: 'string', description: 'Gmail search query' },
-        max_results: { type: 'number', description: 'Max results (default: 10)' },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'get_recent_emails',
-    description: 'Get recent emails from inbox',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        max_results: { type: 'number', description: 'Max results (default: 10)' },
-      },
-    },
-  },
-  {
-    name: 'get_slack_messages',
-    description: 'Get recent Slack messages from channels the user is in',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        limit: { type: 'number', description: 'Number of messages (default: 20)' },
-      },
-    },
-  },
-  {
-    name: 'search_slack',
-    description: 'Search Slack messages',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        query: { type: 'string', description: 'Search query' },
-      },
-      required: ['query'],
-    },
-  },
-  {
-    name: 'get_linear_issues',
-    description: "Get the user's assigned Linear issues",
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        states: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Filter by state names (e.g. ["In Progress", "Todo"])',
-        },
-      },
-    },
-  },
-  {
-    name: 'search_linear',
-    description: 'Search Linear issues',
-    input_schema: {
-      type: 'object' as const,
-      properties: {
-        query: { type: 'string', description: 'Search query' },
-      },
-      required: ['query'],
     },
   },
   {
@@ -112,12 +35,12 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        event_id: { type: 'string', description: 'The event ID to update' },
-        title: { type: 'string', description: 'New title' },
-        start: { type: 'string', description: 'New start time in ISO 8601 format' },
-        end: { type: 'string', description: 'New end time in ISO 8601 format' },
-        description: { type: 'string', description: 'New description' },
-        attendees: { type: 'array', items: { type: 'string' }, description: 'New attendee emails' },
+        event_id: { type: 'string' },
+        title: { type: 'string' },
+        start: { type: 'string', description: 'ISO 8601 datetime' },
+        end: { type: 'string', description: 'ISO 8601 datetime' },
+        description: { type: 'string' },
+        attendees: { type: 'array', items: { type: 'string' } },
       },
       required: ['event_id'],
     },
@@ -127,10 +50,30 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     description: 'Delete a calendar event',
     input_schema: {
       type: 'object' as const,
-      properties: {
-        event_id: { type: 'string', description: 'The event ID to delete' },
-      },
+      properties: { event_id: { type: 'string' } },
       required: ['event_id'],
+    },
+  },
+
+  // ── Gmail ──────────────────────────────────────────────────────
+  {
+    name: 'get_recent_emails',
+    description: 'Get recent emails from inbox',
+    input_schema: {
+      type: 'object' as const,
+      properties: { max_results: { type: 'number', description: 'Default: 10' } },
+    },
+  },
+  {
+    name: 'search_emails',
+    description: 'Search Gmail messages',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Gmail search query' },
+        max_results: { type: 'number' },
+      },
+      required: ['query'],
     },
   },
   {
@@ -139,9 +82,9 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        to: { type: 'string', description: 'Recipient email address' },
-        subject: { type: 'string', description: 'Email subject' },
-        body: { type: 'string', description: 'Email body (plain text)' },
+        to: { type: 'string' },
+        subject: { type: 'string' },
+        body: { type: 'string', description: 'Plain text body' },
       },
       required: ['to', 'subject', 'body'],
     },
@@ -152,12 +95,31 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        thread_id: { type: 'string', description: 'The thread ID to reply to' },
-        to: { type: 'string', description: 'Recipient email address' },
-        subject: { type: 'string', description: 'Original email subject' },
-        body: { type: 'string', description: 'Reply body (plain text)' },
+        thread_id: { type: 'string' },
+        to: { type: 'string' },
+        subject: { type: 'string' },
+        body: { type: 'string' },
       },
       required: ['thread_id', 'to', 'subject', 'body'],
+    },
+  },
+
+  // ── Slack ──────────────────────────────────────────────────────
+  {
+    name: 'get_slack_messages',
+    description: 'Get recent Slack messages',
+    input_schema: {
+      type: 'object' as const,
+      properties: { limit: { type: 'number', description: 'Default: 20' } },
+    },
+  },
+  {
+    name: 'search_slack',
+    description: 'Search Slack messages',
+    input_schema: {
+      type: 'object' as const,
+      properties: { query: { type: 'string' } },
+      required: ['query'],
     },
   },
   {
@@ -166,10 +128,31 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        channel: { type: 'string', description: 'Channel name (e.g. #general) or channel ID' },
-        text: { type: 'string', description: 'Message text' },
+        channel: { type: 'string', description: 'Channel name (e.g. #general) or ID' },
+        text: { type: 'string' },
       },
       required: ['channel', 'text'],
+    },
+  },
+
+  // ── Linear ─────────────────────────────────────────────────────
+  {
+    name: 'get_linear_issues',
+    description: "Get the user's assigned Linear issues",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        states: { type: 'array', items: { type: 'string' }, description: 'Filter by state names' },
+      },
+    },
+  },
+  {
+    name: 'search_linear',
+    description: 'Search Linear issues',
+    input_schema: {
+      type: 'object' as const,
+      properties: { query: { type: 'string' } },
+      required: ['query'],
     },
   },
   {
@@ -178,27 +161,207 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: {
       type: 'object' as const,
       properties: {
-        title: { type: 'string', description: 'Issue title' },
-        description: { type: 'string', description: 'Issue description (markdown)' },
-        priority: { type: 'number', description: '0=none, 1=urgent, 2=high, 3=medium, 4=low' },
-        team_id: { type: 'string', description: 'Team ID (optional, uses first team if omitted)' },
+        title: { type: 'string' },
+        description: { type: 'string', description: 'Markdown' },
+        priority: { type: 'number', description: '0=none,1=urgent,2=high,3=medium,4=low' },
+        team_id: { type: 'string', description: 'Optional, uses first team if omitted' },
       },
       required: ['title'],
     },
   },
   {
     name: 'update_linear_issue',
-    description: 'Update an existing Linear issue (change state, priority, title, etc.)',
+    description: 'Update a Linear issue',
     input_schema: {
       type: 'object' as const,
       properties: {
-        issue_id: { type: 'string', description: 'The issue ID to update' },
-        title: { type: 'string', description: 'New title' },
-        description: { type: 'string', description: 'New description' },
-        state_id: { type: 'string', description: 'New state ID' },
-        priority: { type: 'number', description: '0=none, 1=urgent, 2=high, 3=medium, 4=low' },
+        issue_id: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        state_id: { type: 'string' },
+        priority: { type: 'number' },
       },
       required: ['issue_id'],
+    },
+  },
+
+  // ── GitHub ─────────────────────────────────────────────────────
+  {
+    name: 'get_github_prs',
+    description: 'Get open GitHub pull requests authored by the user',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_github_issues',
+    description: 'Get GitHub issues assigned to the user',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'search_github',
+    description: 'Search GitHub issues and PRs',
+    input_schema: {
+      type: 'object' as const,
+      properties: { query: { type: 'string' } },
+      required: ['query'],
+    },
+  },
+
+  // ── Notion ─────────────────────────────────────────────────────
+  {
+    name: 'search_notion',
+    description: 'Search Notion pages',
+    input_schema: {
+      type: 'object' as const,
+      properties: { query: { type: 'string' } },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_notion_page',
+    description: 'Get the content of a Notion page',
+    input_schema: {
+      type: 'object' as const,
+      properties: { page_id: { type: 'string' } },
+      required: ['page_id'],
+    },
+  },
+  {
+    name: 'create_notion_page',
+    description: 'Create a new Notion page',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string' },
+        content: { type: 'string', description: 'Page content' },
+        parent_page_id: { type: 'string', description: 'Optional parent page' },
+      },
+      required: ['title'],
+    },
+  },
+
+  // ── Google Drive ───────────────────────────────────────────────
+  {
+    name: 'search_drive',
+    description: 'Search Google Drive files',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string' },
+        max_results: { type: 'number' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'get_drive_file',
+    description: 'Get the content of a Google Drive file (Google Docs only)',
+    input_schema: {
+      type: 'object' as const,
+      properties: { file_id: { type: 'string' } },
+      required: ['file_id'],
+    },
+  },
+
+  // ── Contacts ───────────────────────────────────────────────────
+  {
+    name: 'lookup_contact',
+    description: 'Search contacts by name, email, or company',
+    input_schema: {
+      type: 'object' as const,
+      properties: { query: { type: 'string' } },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'list_contacts',
+    description: 'List all contacts',
+    input_schema: {
+      type: 'object' as const,
+      properties: { limit: { type: 'number', description: 'Default: 20' } },
+    },
+  },
+  {
+    name: 'create_contact',
+    description: 'Create a new contact',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        company: { type: 'string' },
+        title: { type: 'string' },
+        notes: { type: 'string' },
+      },
+      required: ['first_name'],
+    },
+  },
+
+  // ── Memory ─────────────────────────────────────────────────────
+  {
+    name: 'remember',
+    description: 'Save an important fact or preference about the user for future conversations',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        content: { type: 'string', description: 'The fact or preference to remember' },
+        category: {
+          type: 'string',
+          description: 'Category: preference, fact, person, instruction, or general',
+        },
+      },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'recall_memories',
+    description: 'Retrieve previously saved memories about the user',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+
+  // ── Reminders ──────────────────────────────────────────────────
+  {
+    name: 'create_reminder',
+    description: 'Set a reminder that will be sent via SMS or email at a specified time',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        message: { type: 'string', description: 'Reminder message' },
+        remind_at: { type: 'string', description: 'ISO 8601 datetime' },
+        channel: { type: 'string', description: '"sms" or "email" (default: email)' },
+      },
+      required: ['message', 'remind_at'],
+    },
+  },
+  {
+    name: 'list_reminders',
+    description: 'List pending reminders',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+
+  // ── SMS ────────────────────────────────────────────────────────
+  {
+    name: 'send_sms',
+    description: "Send an SMS text message to the user's phone number",
+    input_schema: {
+      type: 'object' as const,
+      properties: { message: { type: 'string' } },
+      required: ['message'],
+    },
+  },
+
+  // ── Web Search ─────────────────────────────────────────────────
+  {
+    name: 'web_search',
+    description: 'Search the web for current information',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string' },
+        max_results: { type: 'number', description: 'Default: 5' },
+      },
+      required: ['query'],
     },
   },
 ]
@@ -208,8 +371,8 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   create_calendar_event: ['google_calendar'],
   update_calendar_event: ['google_calendar'],
   delete_calendar_event: ['google_calendar'],
-  search_emails: ['gmail'],
   get_recent_emails: ['gmail'],
+  search_emails: ['gmail'],
   send_email: ['gmail'],
   reply_to_email: ['gmail'],
   get_slack_messages: ['slack'],
@@ -219,6 +382,24 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   search_linear: ['linear'],
   create_linear_issue: ['linear'],
   update_linear_issue: ['linear'],
+  get_github_prs: ['github'],
+  get_github_issues: ['github'],
+  search_github: ['github'],
+  search_notion: ['notion'],
+  get_notion_page: ['notion'],
+  create_notion_page: ['notion'],
+  search_drive: ['google_drive'],
+  get_drive_file: ['google_drive'],
+  // Always available (no OAuth needed)
+  lookup_contact: [],
+  list_contacts: [],
+  create_contact: [],
+  remember: [],
+  recall_memories: [],
+  create_reminder: [],
+  list_reminders: [],
+  send_sms: [],
+  web_search: [],
 }
 
 export function getToolsForConnectedProviders(

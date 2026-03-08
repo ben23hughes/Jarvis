@@ -10,8 +10,8 @@ export async function getValidToken(
   const token = await getOAuthToken(userId, provider)
   if (!token) throw new Error(`No token found for provider: ${provider}`)
 
-  // Linear and Slack tokens don't expire
-  if (provider === 'linear' || provider === 'slack') {
+  // These providers use non-expiring tokens
+  if (provider === 'linear' || provider === 'slack' || provider === 'github' || provider === 'notion') {
     return token.access_token
   }
 
@@ -28,7 +28,7 @@ export async function getValidToken(
     throw new Error(`Token expired and no refresh token available for: ${provider}`)
   }
 
-  if (provider === 'google_calendar' || provider === 'gmail') {
+  if (provider === 'google_calendar' || provider === 'gmail' || provider === 'google_drive') {
     return refreshGoogleToken(userId, token.refresh_token)
   }
 
@@ -63,10 +63,18 @@ async function refreshGoogleToken(userId: string, refreshToken: string): Promise
     scope: data.scope,
   })
 
-  // Also update gmail since it uses the same access token
   await storeOAuthToken({
     userId,
     provider: 'gmail',
+    accessToken: data.access_token,
+    refreshToken: refreshToken,
+    expiresIn: data.expires_in,
+    scope: data.scope,
+  })
+
+  await storeOAuthToken({
+    userId,
+    provider: 'google_drive',
     accessToken: data.access_token,
     refreshToken: refreshToken,
     expiresIn: data.expires_in,

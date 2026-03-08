@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ProfileForm } from '@/components/settings/profile-form'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -7,7 +8,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email, avatar_url')
+    .select('full_name, email, avatar_url, phone_number')
     .eq('id', user!.id)
     .single()
 
@@ -23,13 +24,21 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div>
-            <span className="text-muted-foreground">Name:</span>{' '}
-            <span>{profile?.full_name ?? '—'}</span>
-          </div>
-          <div>
             <span className="text-muted-foreground">Email:</span>{' '}
             <span>{profile?.email}</span>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="max-w-md">
+        <CardHeader>
+          <CardTitle className="text-base">Profile</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProfileForm
+            initialName={profile?.full_name ?? ''}
+            initialPhone={profile?.phone_number ?? ''}
+          />
         </CardContent>
       </Card>
     </div>

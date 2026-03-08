@@ -4,6 +4,7 @@ import { getConnectedProviders } from '@/lib/oauth/token-store'
 import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
+import { listMemories } from '@/lib/memories'
 import { NextResponse } from 'next/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -25,9 +26,12 @@ export async function POST(request: Request) {
     .single()
 
   const userName = profile?.full_name?.split(' ')[0] ?? profile?.email?.split('@')[0] ?? 'there'
-  const connectedProviders = await getConnectedProviders(user.id)
+  const [connectedProviders, memories] = await Promise.all([
+    getConnectedProviders(user.id),
+    listMemories(user.id, 30),
+  ])
   const tools = getToolsForConnectedProviders(connectedProviders)
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories)
 
   const encoder = new TextEncoder()
 

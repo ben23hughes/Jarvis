@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Redirect unauthenticated users away from protected routes
-  if (!user && pathname.startsWith('/dashboard') || !user && pathname.startsWith('/chat') || !user && pathname.startsWith('/settings')) {
+  if (!user && pathname.startsWith('/dashboard') || !user && pathname.startsWith('/chat') || !user && pathname.startsWith('/settings') || !user && pathname.startsWith('/contacts') || !user && pathname.startsWith('/analytics')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

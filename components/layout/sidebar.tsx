@@ -2,12 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Settings, Zap } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Settings, Zap, Users, BarChart2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const nav = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/chat', icon: MessageSquare, label: 'Chat' },
+  { href: '/contacts', icon: Users, label: 'Contacts' },
+  { href: '/analytics', icon: BarChart2, label: 'Analytics' },
   { href: '/settings/integrations', icon: Zap, label: 'Integrations' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ]
