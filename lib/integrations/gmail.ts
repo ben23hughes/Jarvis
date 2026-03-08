@@ -48,6 +48,69 @@ export async function getRecentEmails(userId: string, maxResults = 10): Promise<
   return emails
 }
 
+export async function sendEmail(
+  userId: string,
+  to: string,
+  subject: string,
+  body: string
+): Promise<{ id: string; threadId: string }> {
+  const gmail = await getGmailClient(userId)
+
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'MIME-Version: 1.0',
+    '',
+    body,
+  ].join('\n')
+
+  const encoded = Buffer.from(message).toString('base64url')
+
+  const response = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encoded },
+  })
+
+  return {
+    id: response.data.id ?? '',
+    threadId: response.data.threadId ?? '',
+  }
+}
+
+export async function replyToEmail(
+  userId: string,
+  threadId: string,
+  to: string,
+  subject: string,
+  body: string
+): Promise<{ id: string; threadId: string }> {
+  const gmail = await getGmailClient(userId)
+
+  const message = [
+    `To: ${to}`,
+    `Subject: Re: ${subject.replace(/^Re:\s*/i, '')}`,
+    `In-Reply-To: ${threadId}`,
+    `References: ${threadId}`,
+    'Content-Type: text/plain; charset=utf-8',
+    'MIME-Version: 1.0',
+    '',
+    body,
+  ].join('\n')
+
+  const encoded = Buffer.from(message).toString('base64url')
+
+  const response = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encoded, threadId },
+  })
+
+  return {
+    id: response.data.id ?? '',
+    threadId: response.data.threadId ?? '',
+  }
+}
+
 export async function searchEmails(
   userId: string,
   query: string,

@@ -47,6 +47,23 @@ export async function getRecentMessages(
   return allMessages.sort((a, b) => parseFloat(b.ts) - parseFloat(a.ts)).slice(0, limit)
 }
 
+export async function sendSlackMessage(
+  userId: string,
+  channel: string,
+  text: string
+): Promise<{ ts: string; channel: string }> {
+  const slack = await getSlackClient(userId)
+
+  const response = await slack.chat.postMessage({ channel, text })
+
+  if (!response.ok) throw new Error(`Slack send failed: ${response.error}`)
+
+  return {
+    ts: response.ts ?? '',
+    channel: response.channel ?? channel,
+  }
+}
+
 export async function searchSlackMessages(
   userId: string,
   query: string

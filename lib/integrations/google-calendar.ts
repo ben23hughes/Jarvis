@@ -39,6 +39,47 @@ export async function getUpcomingEvents(
   }))
 }
 
+export async function updateCalendarEvent(
+  userId: string,
+  eventId: string,
+  updates: {
+    title?: string
+    start?: string
+    end?: string
+    description?: string
+    attendees?: string[]
+  }
+): Promise<CalendarEvent> {
+  const calendar = await getCalendarClient(userId)
+
+  const response = await calendar.events.patch({
+    calendarId: 'primary',
+    eventId,
+    requestBody: {
+      ...(updates.title && { summary: updates.title }),
+      ...(updates.description !== undefined && { description: updates.description }),
+      ...(updates.start && { start: { dateTime: updates.start } }),
+      ...(updates.end && { end: { dateTime: updates.end } }),
+      ...(updates.attendees && { attendees: updates.attendees.map((email) => ({ email })) }),
+    },
+  })
+
+  const e = response.data
+  return {
+    id: e.id ?? '',
+    title: e.summary ?? '',
+    start: e.start?.dateTime ?? '',
+    end: e.end?.dateTime ?? '',
+    description: e.description ?? undefined,
+    htmlLink: e.htmlLink ?? undefined,
+  }
+}
+
+export async function deleteCalendarEvent(userId: string, eventId: string): Promise<void> {
+  const calendar = await getCalendarClient(userId)
+  await calendar.events.delete({ calendarId: 'primary', eventId })
+}
+
 export async function createCalendarEvent(
   userId: string,
   event: {
