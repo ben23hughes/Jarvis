@@ -1,16 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProfileForm } from '@/components/settings/profile-form'
+import { SchedulesManager } from '@/components/settings/schedules-manager'
+import { listSchedules } from '@/lib/schedules'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('full_name, email, avatar_url, phone_number')
-    .eq('id', user!.id)
-    .single()
+  const [profileResult, schedules] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('full_name, email, avatar_url, phone_number')
+      .eq('id', user!.id)
+      .single(),
+    listSchedules(user!.id),
+  ])
+
+  const profile = profileResult.data
 
   return (
     <div className="space-y-6">
@@ -41,6 +48,10 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      <div className="max-w-2xl">
+        <SchedulesManager initialSchedules={schedules} />
+      </div>
     </div>
   )
 }
