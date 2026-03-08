@@ -340,6 +340,51 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     input_schema: { type: 'object' as const, properties: {} },
   },
 
+  // ── Schedules ──────────────────────────────────────────────────
+  {
+    name: 'create_schedule',
+    description: 'Create a recurring scheduled task. Jarvis will run the prompt on the given schedule and deliver the result via SMS or email. Times are in MST.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string', description: 'Short name for the schedule' },
+        prompt: { type: 'string', description: 'What Jarvis should do each time it runs' },
+        frequency: { type: 'string', description: '"hourly", "daily", "weekdays", or "weekly"' },
+        hour: { type: 'number', description: 'Hour in MST (0-23). Not needed for hourly.' },
+        minute: { type: 'number', description: 'Minute (0-59, default 0)' },
+        day_of_week: { type: 'number', description: 'Day of week for weekly (0=Sun, 1=Mon, ..., 6=Sat)' },
+        channel: { type: 'string', description: '"sms" or "email" (default: sms)' },
+      },
+      required: ['name', 'prompt', 'frequency'],
+    },
+  },
+  {
+    name: 'list_schedules',
+    description: 'List all scheduled tasks for the user',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'delete_schedule',
+    description: 'Delete a scheduled task by id',
+    input_schema: {
+      type: 'object' as const,
+      properties: { id: { type: 'string', description: 'Schedule id' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'toggle_schedule',
+    description: 'Enable or pause a scheduled task by id',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string' },
+        enabled: { type: 'boolean', description: 'true to enable, false to pause' },
+      },
+      required: ['id', 'enabled'],
+    },
+  },
+
   // ── SMS ────────────────────────────────────────────────────────
   {
     name: 'send_sms',
@@ -398,6 +443,10 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   recall_memories: [],
   create_reminder: [],
   list_reminders: [],
+  create_schedule: [],
+  list_schedules: [],
+  delete_schedule: [],
+  toggle_schedule: [],
   send_sms: [],
   web_search: [],
 }

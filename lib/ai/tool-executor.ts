@@ -8,6 +8,7 @@ import { searchDriveFiles, getDriveFileContent } from '@/lib/integrations/google
 import { listContacts, createContact } from '@/lib/contacts'
 import { saveMemory, listMemories } from '@/lib/memories'
 import { createReminder, listReminders } from '@/lib/reminders'
+import { createSchedule, listSchedules, deleteSchedule, updateSchedule } from '@/lib/schedules'
 import { sendSmsToUser } from '@/lib/twilio'
 import { webSearch } from '@/lib/tavily'
 
@@ -126,6 +127,25 @@ export async function executeTool(
       return createReminder(userId, input.message as string, input.remind_at as string, (input.channel as 'sms' | 'email') ?? 'email')
     case 'list_reminders':
       return listReminders(userId)
+
+    // Schedules
+    case 'create_schedule':
+      return createSchedule(userId, {
+        name: input.name as string,
+        prompt: input.prompt as string,
+        frequency: (input.frequency as 'hourly' | 'daily' | 'weekdays' | 'weekly'),
+        hour: (input.hour as number) ?? 9,
+        minute: (input.minute as number) ?? 0,
+        day_of_week: (input.day_of_week as number | null) ?? null,
+        channel: (input.channel as 'sms' | 'email') ?? 'sms',
+        enabled: true,
+      })
+    case 'list_schedules':
+      return listSchedules(userId)
+    case 'delete_schedule':
+      return deleteSchedule(input.id as string, userId)
+    case 'toggle_schedule':
+      return updateSchedule(input.id as string, userId, { enabled: input.enabled as boolean })
 
     // SMS
     case 'send_sms':

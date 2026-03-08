@@ -19,7 +19,7 @@ const FREQ_LABELS: Record<ScheduleFrequency, string> = {
 
 function frequencySummary(s: UserSchedule) {
   const pad = (n: number) => String(n).padStart(2, '0')
-  const time = `${pad(s.hour)}:${pad(s.minute)} UTC`
+  const time = `${pad(s.hour)}:${pad(s.minute)} MST`
   if (s.frequency === 'hourly') return `Every hour at :${pad(s.minute)}`
   if (s.frequency === 'weekly' && s.day_of_week !== null)
     return `Every ${DAYS[s.day_of_week]} at ${time}`
@@ -138,7 +138,7 @@ export function SchedulesManager({ initialSchedules }: Props) {
 
               {frequency !== 'hourly' && (
                 <div className="space-y-1">
-                  <Label>Time (UTC)</Label>
+                  <Label>Time (MST)</Label>
                   <div className="flex gap-1 items-center">
                     <Input
                       type="number" min={0} max={23}

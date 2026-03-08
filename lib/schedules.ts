@@ -26,42 +26,66 @@ function serviceClient() {
   )
 }
 
+const USER_TZ = 'America/Denver' // MST/MDT
+
 /**
- * Calculate the next UTC datetime a schedule should fire, starting from `from`.
+ * Returns how many minutes the given timezone is behind UTC right now.
+ * e.g. MST = -420 (UTC-7), MDT = -360 (UTC-6)
+ */
+function tzOffsetMinutes(tz: string): number {
+  const now = new Date()
+  const utcMs = now.getTime()
+  const localStr = now.toLocaleString('en-US', { timeZone: tz })
+  const localMs = new Date(localStr).getTime()
+  return Math.round((utcMs - localMs) / 60000)
+}
+
+/**
+ * Calculate the next UTC datetime a schedule should fire.
+ * hour/minute are in USER_TZ (MST/MDT).
  */
 export function calcNextRun(
   frequency: ScheduleFrequency,
-  hour: number,
-  minute: number,
+  localHour: number,
+  localMinute: number,
   dayOfWeek: number | null,
   from: Date = new Date()
 ): Date {
-  const next = new Date(from)
-  next.setSeconds(0, 0)
+  const offsetMin = tzOffsetMinutes(USER_TZ)
+  // Convert local hour:minute to UTC
+  const utcTotalMin = ((localHour * 60 + localMinute) + offsetMin + 1440) % 1440
+  const utcHour = Math.floor(utcTotalMin / 60)
+  const utcMinute = utcTotalMin % 60
 
   if (frequency === 'hourly') {
-    next.setMinutes(minute)
-    if (next <= from) next.setHours(next.getHours() + 1)
+    const next = new Date(from)
+    next.setUTCSeconds(0, 0)
+    next.setUTCMinutes(localMinute) // minute stays the same in any tz
+    if (next <= from) next.setUTCHours(next.getUTCHours() + 1)
     return next
   }
 
-  // Set desired time
-  next.setHours(hour, minute, 0, 0)
-  // If that time has already passed today, start from tomorrow
-  if (next <= from) next.setDate(next.getDate() + 1)
+  const next = new Date(from)
+  next.setUTCHours(utcHour, utcMinute, 0, 0)
+  if (next <= from) next.setUTCDate(next.getUTCDate() + 1)
 
   if (frequency === 'daily') return next
 
   if (frequency === 'weekdays') {
-    while (next.getUTCDay() === 0 || next.getUTCDay() === 6) {
-      next.setDate(next.getDate() + 1)
+    // Check day in user's timezone
+    while (true) {
+      const localDay = new Date(next.toLocaleString('en-US', { timeZone: USER_TZ })).getDay()
+      if (localDay !== 0 && localDay !== 6) break
+      next.setUTCDate(next.getUTCDate() + 1)
     }
     return next
   }
 
   if (frequency === 'weekly' && dayOfWeek !== null) {
-    while (next.getUTCDay() !== dayOfWeek) {
-      next.setDate(next.getDate() + 1)
+    while (true) {
+      const localDay = new Date(next.toLocaleString('en-US', { timeZone: USER_TZ })).getDay()
+      if (localDay === dayOfWeek) break
+      next.setUTCDate(next.getUTCDate() + 1)
     }
     return next
   }
