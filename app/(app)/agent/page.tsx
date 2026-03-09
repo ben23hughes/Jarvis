@@ -1,9 +1,25 @@
-import { AgentPanel } from '@/components/agent/agent-panel'
+import { createClient } from '@/lib/supabase/server'
+import { getOrCreateAgentKey, getAgentSession, isAgentConnected } from '@/lib/agent'
+import { AgentPage } from '@/components/agent/agent-page'
 
-export default function AgentPage() {
+export const dynamic = 'force-dynamic'
+
+export default async function AgentPageRoute() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  const [key, session, connected] = await Promise.all([
+    getOrCreateAgentKey(user!.id),
+    getAgentSession(user!.id),
+    isAgentConnected(user!.id),
+  ])
+
   return (
-    <div className="max-w-2xl">
-      <AgentPanel />
-    </div>
+    <AgentPage
+      apiKey={key}
+      connected={connected}
+      cwd={session?.cwd ?? null}
+      lastHeartbeat={session?.last_heartbeat ?? null}
+    />
   )
 }
