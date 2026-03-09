@@ -10,14 +10,27 @@ import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ImportSyncPanel } from './import-sync-panel'
 import { toast } from 'sonner'
-import type { Contact } from '@/types/contacts'
+import type { Contact, RelationshipType } from '@/types/contacts'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+const REL_COLORS: Record<RelationshipType, string> = {
+  colleague: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  client: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+  friend: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+  investor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  mentor: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300',
+  vendor: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
+  other: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300',
+}
 
 export function ContactsTable() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [newContact, setNewContact] = useState({ first_name: '', last_name: '', email: '', phone: '', company: '', title: '' })
+  const [newContact, setNewContact] = useState({
+    first_name: '', last_name: '', email: '', phone: '',
+    company: '', title: '', relationship_type: '' as RelationshipType | '',
+  })
 
   const url = search ? `/api/contacts?q=${encodeURIComponent(search)}` : '/api/contacts'
   const { data, isLoading, mutate } = useSWR(url, fetcher)
@@ -39,7 +52,7 @@ export function ContactsTable() {
     })
     if (res.ok) {
       toast.success('Contact added')
-      setNewContact({ first_name: '', last_name: '', email: '', phone: '', company: '', title: '' })
+      setNewContact({ first_name: '', last_name: '', email: '', phone: '', company: '', title: '', relationship_type: '' })
       setShowForm(false)
       mutate()
     }
@@ -72,6 +85,16 @@ export function ContactsTable() {
             <Input placeholder="Phone" value={newContact.phone} onChange={(e) => setNewContact((p) => ({ ...p, phone: e.target.value }))} />
             <Input placeholder="Company" value={newContact.company} onChange={(e) => setNewContact((p) => ({ ...p, company: e.target.value }))} />
             <Input placeholder="Title" value={newContact.title} onChange={(e) => setNewContact((p) => ({ ...p, title: e.target.value }))} />
+            <select
+              className="rounded-md border bg-background px-3 py-2 text-sm"
+              value={newContact.relationship_type}
+              onChange={(e) => setNewContact((p) => ({ ...p, relationship_type: e.target.value as RelationshipType | '' }))}
+            >
+              <option value="">Relationship type…</option>
+              {(['colleague','client','friend','investor','mentor','vendor','other'] as RelationshipType[]).map((r) => (
+                <option key={r} value={r} className="capitalize">{r.charAt(0).toUpperCase() + r.slice(1)}</option>
+              ))}
+            </select>
             <div className="col-span-full flex gap-2">
               <Button type="submit" size="sm">Save</Button>
               <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
@@ -110,7 +133,14 @@ export function ContactsTable() {
                   <td className="hidden px-4 py-2 text-muted-foreground md:table-cell">{contact.email}</td>
                   <td className="hidden px-4 py-2 text-muted-foreground md:table-cell">{contact.phone}</td>
                   <td className="hidden px-4 py-2 lg:table-cell">
-                    {contact.company && <Badge variant="secondary" className="text-xs">{contact.company}</Badge>}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {contact.company && <Badge variant="secondary" className="text-xs">{contact.company}</Badge>}
+                      {contact.relationship_type && (
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium capitalize ${REL_COLORS[contact.relationship_type]}`}>
+                          {contact.relationship_type}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <button
