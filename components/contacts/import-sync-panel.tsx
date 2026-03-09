@@ -7,6 +7,16 @@ import { Label } from '@/components/ui/label'
 import { Upload, RefreshCw, X, ChevronDown } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Parse response safely — handles non-JSON error bodies (e.g. 413 Request Entity Too Large)
+async function parseResponse(res: Response): Promise<{ ok: boolean; data: Record<string, unknown> }> {
+  const text = await res.text()
+  try {
+    return { ok: res.ok, data: JSON.parse(text) }
+  } catch {
+    throw new Error(res.ok ? 'Unexpected server response' : `Server error (${res.status}): ${text.slice(0, 120)}`)
+  }
+}
+
 type Tab = 'vcf' | 'google' | 'icloud'
 
 export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
@@ -42,8 +52,8 @@ export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
     formData.append('file', file)
     try {
       const res = await fetch('/api/contacts/import-vcf', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Import failed')
+      const { ok, data } = await parseResponse(res)
+      if (!ok) throw new Error((data.error as string) ?? 'Import failed')
       toast.success(`Imported ${data.upserted} contacts${data.skipped ? ` (${data.skipped} skipped)` : ''}`)
       onImported()
       setOpen(false)
@@ -67,8 +77,8 @@ export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
     formData.append('file', file)
     try {
       const res = await fetch('/api/contacts/import', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Import failed')
+      const { ok, data } = await parseResponse(res)
+      if (!ok) throw new Error((data.error as string) ?? 'Import failed')
       toast.success(`Imported ${data.imported} contacts${data.skipped ? ` (${data.skipped} skipped)` : ''}`)
       onImported()
       setOpen(false)
@@ -86,8 +96,8 @@ export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
     setLoading(true)
     try {
       const res = await fetch('/api/contacts/sync-google', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Sync failed')
+      const { ok, data } = await parseResponse(res)
+      if (!ok) throw new Error((data.error as string) ?? 'Sync failed')
       toast.success(`Synced ${data.upserted} contacts${data.skipped ? ` (${data.skipped} skipped)` : ''}`)
       onImported()
       setOpen(false)
@@ -124,8 +134,8 @@ export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
     setLoading(true)
     try {
       const res = await fetch('/api/contacts/sync-carddav', { method: 'POST' })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error ?? 'Sync failed')
+      const { ok, data } = await parseResponse(res)
+      if (!ok) throw new Error((data.error as string) ?? 'Sync failed')
       toast.success(`Synced ${data.upserted} contacts${data.skipped ? ` (${data.skipped} skipped)` : ''}`)
       onImported()
       setOpen(false)

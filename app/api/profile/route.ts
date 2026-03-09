@@ -21,9 +21,10 @@ export async function PATCH(request: Request) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const updates: Record<string, string> = {}
+  const updates: Record<string, unknown> = {}
   if (body.full_name !== undefined) updates.full_name = body.full_name
   if (body.phone_number !== undefined) updates.phone_number = body.phone_number
+  if (body.layout_config !== undefined) updates.layout_config = body.layout_config
 
   const { data, error } = await supabase
     .from('profiles')

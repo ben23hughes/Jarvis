@@ -3,9 +3,23 @@ import { upsertContactsFromSync } from '@/lib/contacts'
 import { NextResponse } from 'next/server'
 import type { CreateContactInput } from '@/types/contacts'
 
+// Strip fields with large binary payloads before parsing (photos, sounds, etc.)
+function stripBinaryFields(text: string): string {
+  // Remove any property whose value spans multiple lines of base64
+  // These are folded lines — after unfolding they look like PHOTO;ENCODING=BASE64;TYPE=JPEG:<data>
+  // We remove entire lines starting with PHOTO, SOUND, LOGO, KEY, X-ABCROP-RECTANGLE
+  return text
+    .split(/\r?\n/)
+    .filter((line) => !/^(PHOTO|SOUND|LOGO|KEY|X-ABCROP)[;:]/i.test(line.trimStart()))
+    .join('\n')
+}
+
 function parseVCards(text: string): CreateContactInput[] {
+  // Strip binary fields first to avoid huge strings in memory
+  const stripped = stripBinaryFields(text)
+
   // Unfold continuation lines (lines starting with whitespace are continuations)
-  const unfolded = text.replace(/\r?\n[ \t]/g, '')
+  const unfolded = stripped.replace(/\r?\n[ \t]/g, '')
 
   const blocks = unfolded.split(/BEGIN:VCARD/i).slice(1)
 
@@ -22,14 +36,12 @@ function parseVCards(text: string): CreateContactInput[] {
       const lastName = (parts[0] || '').trim()
       const firstName = (parts[1] || '').trim() || fn
 
-      // Take first email and phone
       const emailMatch = block.match(/^EMAIL(?:;[^:]*)?:(.+)$/im)
       const email = emailMatch ? emailMatch[1].trim() : ''
 
       const telMatch = block.match(/^TEL(?:;[^:]*)?:(.+)$/im)
       const phone = telMatch ? telMatch[1].trim() : ''
 
-      // ORG can be semicolon-separated (company;dept), take first part
       const orgRaw = getVal('ORG')
       const company = orgRaw.split(';')[0].trim()
 
@@ -38,6 +50,11 @@ function parseVCards(text: string): CreateContactInput[] {
       return { first_name: firstName, last_name: lastName, email, phone, company, title }
     })
     .filter((c) => c.first_name) as CreateContactInput[]
+}
+
+// Tell Next.js not to limit the request body for this route
+export const config = {
+  api: { bodyParser: false },
 }
 
 export async function POST(request: Request) {

@@ -2,7 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ProfileForm } from '@/components/settings/profile-form'
 import { SchedulesManager } from '@/components/settings/schedules-manager'
+import { LayoutCustomizer } from '@/components/settings/layout-customizer'
 import { listSchedules } from '@/lib/schedules'
+import { mergeLayoutConfig } from '@/lib/layout-config'
 
 export default async function SettingsPage() {
   const supabase = await createClient()
@@ -11,13 +13,14 @@ export default async function SettingsPage() {
   const [profileResult, schedules] = await Promise.all([
     supabase
       .from('profiles')
-      .select('full_name, email, avatar_url, phone_number')
+      .select('full_name, email, avatar_url, phone_number, layout_config')
       .eq('id', user!.id)
       .single(),
     listSchedules(user!.id),
   ])
 
   const profile = profileResult.data
+  const layoutConfig = mergeLayoutConfig(profile?.layout_config ?? null)
 
   return (
     <div className="space-y-6">
@@ -48,6 +51,10 @@ export default async function SettingsPage() {
           />
         </CardContent>
       </Card>
+
+      <div className="max-w-2xl">
+        <LayoutCustomizer initialConfig={layoutConfig} />
+      </div>
 
       <div className="max-w-2xl">
         <SchedulesManager initialSchedules={schedules} />

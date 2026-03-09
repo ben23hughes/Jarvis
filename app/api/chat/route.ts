@@ -5,6 +5,7 @@ import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { listMemories } from '@/lib/memories'
+import { listGoals } from '@/lib/goals'
 import { NextResponse } from 'next/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -26,12 +27,13 @@ export async function POST(request: Request) {
     .single()
 
   const userName = profile?.full_name?.split(' ')[0] ?? profile?.email?.split('@')[0] ?? 'there'
-  const [connectedProviders, memories] = await Promise.all([
+  const [connectedProviders, memories, goals] = await Promise.all([
     getConnectedProviders(user.id),
     listMemories(user.id, 30),
+    listGoals(user.id, undefined, 'active'),
   ])
   const tools = getToolsForConnectedProviders(connectedProviders)
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories, goals)
 
   const encoder = new TextEncoder()
 

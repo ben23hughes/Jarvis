@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TimeBreakdownChart } from './time-breakdown-chart'
 import Link from 'next/link'
 import { Users, Brain, Bell, CalendarClock } from 'lucide-react'
+import type { AnalyticsLayout } from '@/lib/layout-config'
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -23,15 +24,15 @@ const PRIORITY_COLORS: Record<string, string> = {
 
 const WEEK_COLORS = { thisWeek: '#6366f1', lastWeek: '#c4b5fd' }
 
-export function AnalyticsDashboard() {
+export function AnalyticsDashboard({ layout }: { layout: AnalyticsLayout }) {
   const { data, isLoading } = useSWR('/api/analytics/stats', fetcher, {
     revalidateOnFocus: false,
   })
 
   return (
     <div className="space-y-6">
-      {/* DB stat cards — always available */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* DB stat cards */}
+      {layout.db_stats && <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {isLoading ? (
           [1,2,3,4].map((i) => <Skeleton key={i} className="h-20" />)
         ) : (
@@ -42,10 +43,10 @@ export function AnalyticsDashboard() {
             <StatCard icon={<CalendarClock className="h-5 w-5" />} label="Active schedules" value={data?.activeSchedules ?? 0} href="/settings" />
           </>
         )}
-      </div>
+      </div>}
 
       {/* Meeting load: this week vs last week */}
-      {isLoading ? (
+      {layout.meeting_load && isLoading ? (
         <Skeleton className="h-64" />
       ) : !data?.calendarConnected ? (
         <Card>
@@ -83,7 +84,7 @@ export function AnalyticsDashboard() {
       )}
 
       {/* Linear issues by priority */}
-      {isLoading ? (
+      {layout.linear_breakdown && isLoading ? (
         <Skeleton className="h-64" />
       ) : !data?.linearConnected ? (
         <Card>
@@ -131,10 +132,12 @@ export function AnalyticsDashboard() {
       )}
 
       {/* Time breakdown (existing) */}
-      <div>
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">Time breakdown (last 30 days)</h2>
-        <TimeBreakdownChart />
-      </div>
+      {layout.time_breakdown && (
+        <div>
+          <h2 className="text-sm font-medium text-muted-foreground mb-3">Time breakdown (last 30 days)</h2>
+          <TimeBreakdownChart />
+        </div>
+      )}
     </div>
   )
 }
