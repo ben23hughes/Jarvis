@@ -82,6 +82,63 @@ export async function deleteContact(userId: string, contactId: string): Promise<
   if (error) throw new Error(`Failed to delete contact: ${error.message}`)
 }
 
+export async function upsertContactsFromSync(
+  userId: string,
+  incoming: CreateContactInput[]
+): Promise<{ upserted: number; skipped: number }> {
+  const supabase = getServiceClient()
+
+  // Load existing contacts to deduplicate by email
+  const { data: existing } = await supabase
+    .from('contacts')
+    .select('id, email')
+    .eq('user_id', userId)
+
+  const existingByEmail = new Map(
+    (existing ?? []).filter((c) => c.email).map((c) => [c.email.toLowerCase(), c.id])
+  )
+
+  const toInsert: Record<string, unknown>[] = []
+  const toUpdate: { id: string; data: Partial<CreateContactInput> }[] = []
+  let skipped = 0
+
+  for (const contact of incoming) {
+    if (!contact.first_name) { skipped++; continue }
+    const email = contact.email?.toLowerCase()
+    if (email && existingByEmail.has(email)) {
+      toUpdate.push({
+        id: existingByEmail.get(email)!,
+        data: {
+          first_name: contact.first_name,
+          last_name: contact.last_name || undefined,
+          phone: contact.phone || undefined,
+          company: contact.company || undefined,
+          title: contact.title || undefined,
+        },
+      })
+    } else {
+      toInsert.push({ ...contact, user_id: userId, tags: [] })
+    }
+  }
+
+  let upserted = 0
+
+  for (let i = 0; i < toInsert.length; i += 100) {
+    const chunk = toInsert.slice(i, i + 100)
+    const { data, error } = await supabase.from('contacts').insert(chunk).select('id')
+    if (error) skipped += chunk.length
+    else upserted += data?.length ?? 0
+  }
+
+  for (const { id, data } of toUpdate) {
+    const { error } = await supabase.from('contacts').update(data).eq('id', id)
+    if (!error) upserted++
+    else skipped++
+  }
+
+  return { upserted, skipped }
+}
+
 export async function importContactsFromCsv(
   userId: string,
   rows: Record<string, string>[]

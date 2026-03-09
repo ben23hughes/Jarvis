@@ -3,6 +3,7 @@ import { EmailWidget } from '@/components/dashboard/email-widget'
 import { SlackWidget } from '@/components/dashboard/slack-widget'
 import { LinearWidget } from '@/components/dashboard/linear-widget'
 import { BriefingStream } from '@/components/dashboard/briefing-stream'
+import { QuickStats } from '@/components/dashboard/quick-stats'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <BriefingStream firstName={firstName} />
-
+      <QuickStats />
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <CalendarWidget />
         <EmailWidget />

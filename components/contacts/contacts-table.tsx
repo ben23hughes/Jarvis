@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { CsvImportButton } from './csv-import-button'
+import { ImportSyncPanel } from './import-sync-panel'
 import { toast } from 'sonner'
 import type { Contact } from '@/types/contacts'
 
@@ -56,7 +56,7 @@ export function ContactsTable() {
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm"
         />
-        <CsvImportButton onImported={handleImported} />
+        <ImportSyncPanel onImported={handleImported} />
         <Button size="sm" onClick={() => setShowForm((v) => !v)}>
           <Plus className="mr-1 h-4 w-4" />
           Add contact

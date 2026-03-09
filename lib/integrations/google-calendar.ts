@@ -39,6 +39,33 @@ export async function getUpcomingEvents(
   }))
 }
 
+export async function getEventsInRange(
+  userId: string,
+  from: Date,
+  to: Date,
+  maxResults = 100
+): Promise<CalendarEvent[]> {
+  const calendar = await getCalendarClient(userId)
+  const response = await calendar.events.list({
+    calendarId: 'primary',
+    timeMin: from.toISOString(),
+    timeMax: to.toISOString(),
+    maxResults,
+    singleEvents: true,
+    orderBy: 'startTime',
+  })
+  return (response.data.items ?? []).map((event) => ({
+    id: event.id ?? '',
+    title: event.summary ?? '(No title)',
+    start: event.start?.dateTime ?? event.start?.date ?? '',
+    end: event.end?.dateTime ?? event.end?.date ?? '',
+    description: event.description ?? undefined,
+    location: event.location ?? undefined,
+    attendees: event.attendees?.map((a) => a.email ?? '').filter(Boolean),
+    htmlLink: event.htmlLink ?? undefined,
+  }))
+}
+
 export async function updateCalendarEvent(
   userId: string,
   eventId: string,

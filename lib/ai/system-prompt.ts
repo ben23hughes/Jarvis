@@ -9,6 +9,7 @@ const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
   github: 'GitHub',
   notion: 'Notion',
   google_drive: 'Google Drive',
+  apple_contacts: 'Apple Contacts',
 }
 
 export function buildSystemPrompt(
