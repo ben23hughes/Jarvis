@@ -319,6 +319,19 @@ export async function executeTool(
     case 'run_command':
     case 'search_files':
     case 'git_status':
+    // Browser control
+    case 'browser_navigate':
+    case 'browser_screenshot':
+    case 'browser_click':
+    case 'browser_type':
+    case 'browser_get_text':
+    case 'browser_evaluate':
+    case 'browser_back':
+    case 'browser_close':
+    // Screen control
+    case 'screen_screenshot':
+    case 'screen_click':
+    case 'screen_type':
       return dispatchAgentTask(userId, toolName, input)
 
     default:

@@ -11,10 +11,10 @@
  *   JARVIS_URL=http://localhost:3000
  */
 
-import { execSync, spawn } from 'child_process'
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync } from 'fs'
+import { execSync } from 'child_process'
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs'
 import { join, dirname, resolve } from 'path'
-import { createInterface } from 'readline'
+import { tmpdir } from 'os'
 
 // Load .env from agent/ directory if present
 const envPath = new URL('.env', import.meta.url).pathname
@@ -144,16 +144,172 @@ function gitStatus({ cwd }) {
   }
 }
 
+// ── Browser control (Playwright) ───────────────────────────────────────────────
+
+let _browser = null
+let _page = null
+
+async function getPage() {
+  if (!_page || _page.isClosed()) {
+    const { chromium } = await import('playwright')
+    _browser = await chromium.launch({
+      headless: false, // User can watch Jarvis browse
+      args: ['--start-maximized'],
+    })
+    _page = await _browser.newPage()
+    _page.setDefaultTimeout(15_000)
+    console.log('🌐  Browser opened')
+  }
+  return _page
+}
+
+async function browserNavigate({ url, wait_for = 'load' }) {
+  const page = await getPage()
+  const waitUntil = ['load', 'networkidle', 'domcontentloaded'].includes(wait_for)
+    ? wait_for
+    : 'load'
+  await page.goto(url, { waitUntil })
+  const title = await page.title()
+  const text = await page.evaluate(() => document.body?.innerText?.slice(0, 3000) ?? '')
+  return { url: page.url(), title, text }
+}
+
+async function browserScreenshot({ full_page = false }) {
+  const page = await getPage()
+  const buffer = await page.screenshot({
+    type: 'jpeg',
+    quality: 75,
+    fullPage: full_page,
+  })
+  const title = await page.title()
+  return {
+    __image: true,
+    base64: buffer.toString('base64'),
+    media_type: 'image/jpeg',
+    description: `Browser screenshot — page: "${title}" at ${page.url()}`,
+  }
+}
+
+async function browserClick({ selector, text }) {
+  const page = await getPage()
+  if (text) {
+    await page.getByText(text, { exact: false }).first().click()
+  } else if (selector) {
+    await page.locator(selector).first().click()
+  } else {
+    throw new Error('Provide selector or text')
+  }
+  await page.waitForLoadState('load').catch(() => null)
+  const title = await page.title()
+  return { clicked: selector ?? text, current_url: page.url(), title }
+}
+
+async function browserType({ selector, text, clear_first = true, press_enter = false }) {
+  const page = await getPage()
+  const loc = page.locator(selector).first()
+  if (clear_first) await loc.clear()
+  await loc.type(text)
+  if (press_enter) await loc.press('Enter')
+  return { typed: text, into: selector }
+}
+
+async function browserGetText({ selector }) {
+  const page = await getPage()
+  if (selector) {
+    const el = page.locator(selector).first()
+    const text = await el.innerText()
+    return { selector, text: text.slice(0, 5000) }
+  }
+  const text = await page.evaluate(() => document.body?.innerText?.slice(0, 8000) ?? '')
+  return { url: page.url(), text }
+}
+
+async function browserEvaluate({ script }) {
+  const page = await getPage()
+  const result = await page.evaluate(script)
+  return { result }
+}
+
+async function browserBack() {
+  const page = await getPage()
+  await page.goBack({ waitUntil: 'load' })
+  return { url: page.url(), title: await page.title() }
+}
+
+async function browserClose() {
+  if (_browser) {
+    await _browser.close()
+    _browser = null
+    _page = null
+    console.log('🌐  Browser closed')
+  }
+  return { closed: true }
+}
+
+// ── Screen control (macOS) ────────────────────────────────────────────────────
+
+async function screenScreenshot() {
+  const tmpPath = join(tmpdir(), `jarvis_screen_${Date.now()}.jpg`)
+  try {
+    // macOS built-in screencapture. -x = no sound, -t jpg = JPEG
+    execSync(`screencapture -x -t jpg "${tmpPath}"`, { timeout: 5000 })
+    const buffer = readFileSync(tmpPath)
+    return {
+      __image: true,
+      base64: buffer.toString('base64'),
+      media_type: 'image/jpeg',
+      description: 'Full desktop screenshot',
+    }
+  } finally {
+    try { unlinkSync(tmpPath) } catch { /* ignore */ }
+  }
+}
+
+async function screenClick({ x, y, double_click = false }) {
+  // AppleScript for clicking at coordinates
+  const click = double_click ? 'double click' : 'click'
+  execSync(
+    `osascript -e 'tell application "System Events" to ${click} at {${x}, ${y}}'`,
+    { timeout: 5000 }
+  )
+  return { clicked: { x, y }, double: double_click }
+}
+
+async function screenType({ text, press_return = false }) {
+  const escaped = text.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+  execSync(
+    `osascript -e 'tell application "System Events" to keystroke "${escaped}"'`,
+    { timeout: 5000 }
+  )
+  if (press_return) {
+    execSync(`osascript -e 'tell application "System Events" to key code 36'`, { timeout: 3000 })
+  }
+  return { typed: text }
+}
+
 // ── Task dispatcher ────────────────────────────────────────────────────────────
 
 async function executeTask(tool, input) {
   switch (tool) {
-    case 'read_file':    return readFile(input)
-    case 'write_file':   return writeFile(input)
-    case 'list_files':   return listFiles(input)
-    case 'run_command':  return runCommand(input)
-    case 'search_files': return searchFiles(input)
-    case 'git_status':   return gitStatus(input)
+    case 'read_file':         return readFile(input)
+    case 'write_file':        return writeFile(input)
+    case 'list_files':        return listFiles(input)
+    case 'run_command':       return runCommand(input)
+    case 'search_files':      return searchFiles(input)
+    case 'git_status':        return gitStatus(input)
+    // Browser
+    case 'browser_navigate':  return browserNavigate(input)
+    case 'browser_screenshot':return browserScreenshot(input)
+    case 'browser_click':     return browserClick(input)
+    case 'browser_type':      return browserType(input)
+    case 'browser_get_text':  return browserGetText(input)
+    case 'browser_evaluate':  return browserEvaluate(input)
+    case 'browser_back':      return browserBack()
+    case 'browser_close':     return browserClose()
+    // Screen
+    case 'screen_screenshot': return screenScreenshot()
+    case 'screen_click':      return screenClick(input)
+    case 'screen_type':       return screenType(input)
     default: throw new Error(`Unknown tool: ${tool}`)
   }
 }

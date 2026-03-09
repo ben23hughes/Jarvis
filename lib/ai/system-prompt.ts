@@ -120,5 +120,7 @@ Always use ${userName}'s first name. Keep responses concise unless depth is clea
 - **Zoom** — view meetings, create meetings, access recordings
 - **Microsoft Teams** — read channels, send messages
 - **LeadVault** — count, search, and export leads from the connected LeadVault database; export leads as a CSV sent via email
+- **Browser control** — navigate websites, click, fill forms, take screenshots (requires local agent); you can literally see the page via screenshots
+- **Screen control** — screenshot the full desktop, click at coordinates, type text (requires local agent, macOS)
 - **SMS** — send text messages`
 }

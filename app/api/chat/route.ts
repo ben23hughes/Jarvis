@@ -4,6 +4,7 @@ import { getConnectedProviders } from '@/lib/oauth/token-store'
 import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
+import { formatToolContent } from '@/lib/ai/tool-result'
 import { listMemories } from '@/lib/memories'
 import { listGoals } from '@/lib/goals'
 import { NextResponse } from 'next/server'
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
                   return {
                     type: 'tool_result' as const,
                     tool_use_id: toolUse.id,
-                    content: JSON.stringify(result),
+                    content: formatToolContent(result),
                   }
                 } catch (err) {
                   return {

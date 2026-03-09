@@ -751,6 +751,118 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
       },
     },
   },
+
+  // ── Browser control (via Playwright) ───────────────────────────
+  {
+    name: 'browser_navigate',
+    description: "Navigate the user's browser to a URL. Opens a visible browser window. Returns the page title and text content. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'Full URL to navigate to' },
+        wait_for: { type: 'string', description: 'Optional: "load" (default), "networkidle", or a CSS selector to wait for' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'browser_screenshot',
+    description: "Take a screenshot of the current browser page. Returns the image so you can see exactly what is on screen. Use this to understand page state before clicking. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        full_page: { type: 'boolean', description: 'Capture full scrollable page (default: false, viewport only)' },
+      },
+    },
+  },
+  {
+    name: 'browser_click',
+    description: "Click an element in the browser. Specify by CSS selector OR visible text. After clicking, take a screenshot to see the result. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        selector: { type: 'string', description: 'CSS selector (e.g. "#submit", ".btn-primary", "button[type=submit]")' },
+        text: { type: 'string', description: 'Visible text of the element to click (e.g. "Sign in", "Next")' },
+      },
+    },
+  },
+  {
+    name: 'browser_type',
+    description: "Type text into an input field in the browser. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        selector: { type: 'string', description: 'CSS selector of the input field' },
+        text: { type: 'string', description: 'Text to type' },
+        clear_first: { type: 'boolean', description: 'Clear existing content before typing (default: true)' },
+        press_enter: { type: 'boolean', description: 'Press Enter after typing (default: false)' },
+      },
+      required: ['selector', 'text'],
+    },
+  },
+  {
+    name: 'browser_get_text',
+    description: "Get the text content of the current browser page or a specific element. Useful for reading data off a page. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        selector: { type: 'string', description: 'CSS selector of element (omit for full page text)' },
+      },
+    },
+  },
+  {
+    name: 'browser_evaluate',
+    description: "Run JavaScript in the browser page and return the result. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        script: { type: 'string', description: 'JavaScript to evaluate (return value is captured)' },
+      },
+      required: ['script'],
+    },
+  },
+  {
+    name: 'browser_back',
+    description: "Navigate back in the browser history. Requires the Jarvis local agent.",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'browser_close',
+    description: "Close the browser. Call this when done with browser tasks. Requires the Jarvis local agent.",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+
+  // ── Screen control ──────────────────────────────────────────────
+  {
+    name: 'screen_screenshot',
+    description: "Take a screenshot of the user's entire screen. Returns the image so you can see what is open. Requires the Jarvis local agent running on macOS.",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'screen_click',
+    description: "Click at specific screen coordinates. Use screen_screenshot first to find the right coordinates. Requires the Jarvis local agent on macOS.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        x: { type: 'number', description: 'X coordinate in pixels' },
+        y: { type: 'number', description: 'Y coordinate in pixels' },
+        double_click: { type: 'boolean', description: 'Double-click instead of single click' },
+      },
+      required: ['x', 'y'],
+    },
+  },
+  {
+    name: 'screen_type',
+    description: "Type text on the keyboard (sent to whatever app has focus). Requires the Jarvis local agent on macOS.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        text: { type: 'string', description: 'Text to type' },
+        press_return: { type: 'boolean', description: 'Press Return/Enter after typing' },
+      },
+      required: ['text'],
+    },
+  },
 ]
 
 const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
@@ -811,6 +923,18 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   count_leads: [],
   search_leads: [],
   export_leads_csv: [],
+  // Browser + screen — always present; runtime throws if agent not connected
+  browser_navigate: [],
+  browser_screenshot: [],
+  browser_click: [],
+  browser_type: [],
+  browser_get_text: [],
+  browser_evaluate: [],
+  browser_back: [],
+  browser_close: [],
+  screen_screenshot: [],
+  screen_click: [],
+  screen_type: [],
 }
 
 export function getToolsForConnectedProviders(

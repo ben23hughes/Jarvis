@@ -7,6 +7,7 @@ import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { formatToolContent } from '@/lib/ai/tool-result'
 import { NextResponse } from 'next/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
     const toolResults: Anthropic.ToolResultBlockParam[] = []
     for (const tool of toolUses) {
       const result = await executeTool(tool.name, tool.input as Record<string, unknown>, userId)
-      toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: JSON.stringify(result) })
+      toolResults.push({ type: 'tool_result', tool_use_id: tool.id, content: formatToolContent(result) })
     }
     messages.push({ role: 'assistant', content: response.content })
     messages.push({ role: 'user', content: toolResults })

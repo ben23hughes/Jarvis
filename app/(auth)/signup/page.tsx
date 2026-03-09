@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 
 export default function SignupPage() {
   const router = useRouter()
+  const [accessCode, setAccessCode] = useState('')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -17,6 +18,10 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
+    if (accessCode.toLowerCase() !== 'ben') {
+      toast.error('Invalid access code')
+      return
+    }
     setLoading(true)
 
     const supabase = createClient()
@@ -48,6 +53,14 @@ export default function SignupPage() {
         </div>
 
         <form onSubmit={handleSignup} className="space-y-4">
+          <Input
+            type="password"
+            placeholder="Access code"
+            value={accessCode}
+            onChange={(e) => setAccessCode(e.target.value)}
+            required
+            autoComplete="off"
+          />
           <Input
             type="text"
             placeholder="Full name"
