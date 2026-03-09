@@ -1,16 +1,21 @@
-export const SLACK_SCOPES = [
+// Bot scopes — granted to the app/bot token
+const SLACK_BOT_SCOPES = [
   'channels:history',
   'channels:read',
-  'users:read',
+  'chat:write',
   'im:history',
-  'search:read',
+  'users:read',
 ].join(',')
+
+// User scopes — granted to the authed_user token (search requires a user token)
+const SLACK_USER_SCOPES = 'search:read'
 
 export function getSlackAuthUrl(state: string): string {
   const params = new URLSearchParams({
     client_id: process.env.SLACK_CLIENT_ID!,
     redirect_uri: process.env.SLACK_REDIRECT_URI!,
-    scope: SLACK_SCOPES,
+    scope: SLACK_BOT_SCOPES,
+    user_scope: SLACK_USER_SCOPES,
     state,
   })
   return `https://slack.com/oauth/v2/authorize?${params}`
@@ -18,7 +23,7 @@ export function getSlackAuthUrl(state: string): string {
 
 export async function exchangeSlackCode(code: string): Promise<{
   access_token: string
-  authed_user: { id: string }
+  authed_user: { id: string; access_token?: string }
   team: { id: string; name: string }
   scope: string
 }> {

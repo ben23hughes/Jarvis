@@ -62,22 +62,15 @@ function parseVCards(text: string): CreateContactInput[] {
     .filter((c) => c.first_name) as CreateContactInput[]
 }
 
-// Tell Next.js not to limit the request body for this route
-export const config = {
-  api: { bodyParser: false },
-}
-
 export async function POST(request: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-    if (!file) return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+    const text = await request.text()
+    if (!text) return NextResponse.json({ error: 'No content received' }, { status: 400 })
 
-    const text = await file.text()
     const contacts = parseVCards(text)
 
     if (contacts.length === 0) {
@@ -90,7 +83,8 @@ export async function POST(request: Request) {
     const result = await upsertContactsFromSync(user.id, contacts)
     return NextResponse.json(result)
   } catch (err) {
-    console.error('vCard import error:', err)
-    return NextResponse.json({ error: 'Failed to parse vCard file' }, { status: 400 })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('vCard import error:', msg)
+    return NextResponse.json({ error: `Parse error: ${msg}` }, { status: 400 })
   }
 }

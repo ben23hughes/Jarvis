@@ -32,7 +32,11 @@ export async function GET(request: Request) {
       accessToken: data.access_token,
       scope: data.scope,
       providerAccountId: data.authed_user?.id,
-      providerMetadata: { team: data.team },
+      providerMetadata: {
+        team: data.team,
+        // User token is needed for search:read (user-scoped API)
+        user_token: data.authed_user?.access_token ?? null,
+      },
     })
 
     return NextResponse.redirect(`${origin}/settings/integrations?success=slack`)

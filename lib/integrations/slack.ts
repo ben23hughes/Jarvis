@@ -1,10 +1,19 @@
 import { WebClient } from '@slack/web-api'
 import { getValidToken } from '@/lib/oauth/token-refresh'
+import { getOAuthToken } from '@/lib/oauth/token-store'
 import type { SlackMessage } from '@/types/dashboard'
 
 async function getSlackClient(userId: string) {
   const accessToken = await getValidToken(userId, 'slack')
   return new WebClient(accessToken)
+}
+
+// search.messages requires a user token (search:read is a user scope, not bot scope)
+async function getSlackUserClient(userId: string): Promise<WebClient | null> {
+  const token = await getOAuthToken(userId, 'slack')
+  const userToken = token?.provider_metadata?.user_token as string | null
+  if (!userToken) return null
+  return new WebClient(userToken)
 }
 
 export async function getRecentMessages(
@@ -68,7 +77,11 @@ export async function searchSlackMessages(
   userId: string,
   query: string
 ): Promise<SlackMessage[]> {
-  const slack = await getSlackClient(userId)
+  const slack = await getSlackUserClient(userId)
+
+  if (!slack) {
+    return [{ id: '', channelId: '', channelName: '', user: '', text: 'Slack search requires reconnecting Slack to grant the search permission.', ts: '' }]
+  }
 
   const response = await slack.search.messages({ query, count: 10 })
   const matches = response.messages?.matches ?? []

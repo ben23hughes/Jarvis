@@ -17,6 +17,22 @@ async function parseResponse(res: Response): Promise<{ ok: boolean; data: Record
   }
 }
 
+// Strip binary fields (photos, sounds) from vCard text in the browser before upload.
+// Apple Contacts exports embed base64 photos that can be 50MB+ — we don't need them.
+function stripVCardBinaryFields(text: string): string {
+  const lines = text.split(/\r?\n/)
+  const result: string[] = []
+  let skipping = false
+  for (const line of lines) {
+    const isContinuation = line.startsWith(' ') || line.startsWith('\t')
+    if (skipping && isContinuation) continue
+    skipping = false
+    if (/^(PHOTO|SOUND|LOGO|KEY|X-ABCROP)[;:]/i.test(line)) { skipping = true; continue }
+    result.push(line)
+  }
+  return result.join('\n')
+}
+
 type Tab = 'vcf' | 'google' | 'icloud'
 
 export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
@@ -48,10 +64,15 @@ export function ImportSyncPanel({ onImported }: { onImported: () => void }) {
     const file = e.target.files?.[0]
     if (!file) return
     setLoading(true)
-    const formData = new FormData()
-    formData.append('file', file)
     try {
-      const res = await fetch('/api/contacts/import-vcf', { method: 'POST', body: formData })
+      // Read and strip photos client-side so we never hit the body size limit
+      const raw = await file.text()
+      const stripped = stripVCardBinaryFields(raw)
+      const res = await fetch('/api/contacts/import-vcf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: stripped,
+      })
       const { ok, data } = await parseResponse(res)
       if (!ok) throw new Error((data.error as string) ?? 'Import failed')
       toast.success(`Imported ${data.upserted} contacts${data.skipped ? ` (${data.skipped} skipped)` : ''}`)

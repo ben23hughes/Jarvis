@@ -12,10 +12,16 @@ function getGreeting(): string {
 }
 
 export function BriefingStream({ firstName }: { firstName: string }) {
-  const full = `${getGreeting()}, ${firstName}.`
+  // Compute greeting only on the client to avoid server/client timezone mismatch
+  const [full, setFull] = useState('')
   const [displayed, setDisplayed] = useState('')
 
   useEffect(() => {
+    setFull(`${getGreeting()}, ${firstName}.`)
+  }, [firstName])
+
+  useEffect(() => {
+    if (!full) return
     setDisplayed('')
     let i = 0
     const interval = setInterval(() => {
