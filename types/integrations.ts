@@ -1,4 +1,4 @@
-export type IntegrationProvider = 'google_calendar' | 'gmail' | 'slack' | 'linear' | 'github' | 'notion' | 'google_drive' | 'apple_contacts'
+export type IntegrationProvider = 'google_calendar' | 'gmail' | 'slack' | 'linear' | 'github' | 'notion' | 'google_drive' | 'apple_contacts' | 'zoom' | 'microsoft_teams'
 
 export interface OAuthToken {
   id: string

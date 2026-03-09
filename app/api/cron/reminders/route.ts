@@ -1,4 +1,5 @@
 import { validateCronRequest } from '@/lib/cron/auth'
+import { pushToAllDevices } from '@/lib/devices'
 import { getDueReminders, markReminderSent } from '@/lib/reminders'
 import { getDueSchedules, markScheduleRan } from '@/lib/schedules'
 import { sendSmsToUser } from '@/lib/twilio'
@@ -105,7 +106,9 @@ export async function GET(request: Request) {
   // Fire reminders
   for (const reminder of reminders) {
     try {
-      await deliver(reminder.user_id, `⏰ Reminder: ${reminder.message}`, reminder.channel as 'sms' | 'email')
+      const text = `Reminder: ${reminder.message}`
+      await deliver(reminder.user_id, `⏰ ${text}`, reminder.channel as 'sms' | 'email')
+      await pushToAllDevices(reminder.user_id, text, 'reminder').catch(() => null)
       await markReminderSent(reminder.id)
       results.reminders_sent++
     } catch (err) {
@@ -119,6 +122,7 @@ export async function GET(request: Request) {
     try {
       const response = await runScheduledPrompt(schedule.user_id, schedule.prompt)
       await deliver(schedule.user_id, response, schedule.channel)
+      await pushToAllDevices(schedule.user_id, response, 'schedule').catch(() => null)
       await markScheduleRan(schedule)
       results.schedules_ran++
     } catch (err) {

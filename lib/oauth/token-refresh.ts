@@ -1,4 +1,6 @@
 import { getOAuthToken, storeOAuthToken } from './token-store'
+import { refreshZoomToken } from './zoom'
+import { refreshMicrosoftToken } from './microsoft-teams'
 import type { IntegrationProvider } from '@/types/integrations'
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000 // 5 minutes
@@ -30,6 +32,30 @@ export async function getValidToken(
 
   if (provider === 'google_calendar' || provider === 'gmail' || provider === 'google_drive') {
     return refreshGoogleToken(userId, token.refresh_token)
+  }
+
+  if (provider === 'zoom') {
+    const data = await refreshZoomToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'zoom',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
+  }
+
+  if (provider === 'microsoft_teams') {
+    const data = await refreshMicrosoftToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'microsoft_teams',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
   }
 
   throw new Error(`Unknown provider for refresh: ${provider}`)

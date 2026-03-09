@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getConnectedProviders } from '@/lib/oauth/token-store'
 import { IntegrationCard } from '@/components/integrations/integration-card'
-import { Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive } from 'lucide-react'
+import { Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive, Video, MessageSquare } from 'lucide-react'
 
 export default async function IntegrationsPage() {
   const supabase = await createClient()
@@ -58,6 +58,20 @@ export default async function IntegrationsPage() {
       icon: <FileText className="h-5 w-5" />,
       connectUrl: '/api/oauth/notion/connect',
     },
+    {
+      provider: 'zoom' as const,
+      name: 'Zoom',
+      description: 'View and create Zoom meetings. Jarvis can schedule calls and surface recent recordings.',
+      icon: <Video className="h-5 w-5 text-blue-500" />,
+      connectUrl: '/api/oauth/zoom/connect',
+    },
+    {
+      provider: 'microsoft_teams' as const,
+      name: 'Microsoft Teams',
+      description: 'Read and send Teams messages. Jarvis can surface channel activity and post on your behalf.',
+      icon: <MessageSquare className="h-5 w-5 text-purple-600" />,
+      connectUrl: '/api/oauth/microsoft-teams/connect',
+    },
   ]
 
   return (
@@ -83,6 +97,13 @@ export default async function IntegrationsPage() {
         <p>
           <strong>Note:</strong> Google Calendar, Gmail, and Google Drive all use the same Google account connection.
           Connecting any one enables all three.
+        </p>
+      </div>
+
+      <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <p>
+          <strong>Zoom & Microsoft Teams:</strong> Require app credentials configured in your environment.
+          Contact your admin if these options are unavailable.
         </p>
       </div>
     </div>

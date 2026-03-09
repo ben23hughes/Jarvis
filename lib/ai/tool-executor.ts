@@ -1,4 +1,6 @@
 import { getUpcomingEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/lib/integrations/google-calendar'
+import { getUpcomingMeetings, createZoomMeeting, getZoomRecordings } from '@/lib/integrations/zoom'
+import { getJoinedTeams, getTeamChannels, getChannelMessages, sendChannelMessage } from '@/lib/integrations/microsoft-teams'
 import { getRecentEmails, searchEmails, sendEmail, replyToEmail } from '@/lib/integrations/gmail'
 import { getRecentMessages, searchSlackMessages, sendSlackMessage } from '@/lib/integrations/slack'
 import { getMyIssues, searchLinearIssues, createLinearIssue, updateLinearIssue } from '@/lib/integrations/linear'
@@ -13,6 +15,7 @@ import { sendSmsToUser } from '@/lib/twilio'
 import { webSearch } from '@/lib/tavily'
 import { listGoals, createGoal, updateGoal } from '@/lib/goals'
 import type { GoalCategory, GoalStatus } from '@/lib/goals'
+import { dispatchAgentTask } from '@/lib/agent'
 
 export async function executeTool(
   toolName: string,
@@ -96,6 +99,35 @@ export async function executeTool(
     case 'create_notion_page':
       return createNotionPage(userId, input.title as string, input.content as string | undefined, input.parent_page_id as string | undefined)
 
+    // Zoom
+    case 'get_zoom_meetings':
+      return getUpcomingMeetings(userId)
+    case 'create_zoom_meeting':
+      return createZoomMeeting(userId, {
+        topic: input.topic as string,
+        start_time: input.start_time as string,
+        duration: input.duration as number,
+        agenda: input.agenda as string | undefined,
+      })
+    case 'get_zoom_recordings':
+      return getZoomRecordings(userId, input.from as string | undefined)
+
+    // Microsoft Teams
+    case 'get_teams_channels': {
+      const teams = await getJoinedTeams(userId)
+      const teamsWithChannels = await Promise.all(
+        teams.slice(0, 5).map(async (team) => ({
+          ...team,
+          channels: await getTeamChannels(userId, team.id),
+        }))
+      )
+      return teamsWithChannels
+    }
+    case 'get_teams_messages':
+      return getChannelMessages(userId, input.team_id as string, input.channel_id as string, (input.limit as number) ?? 20)
+    case 'send_teams_message':
+      return sendChannelMessage(userId, input.team_id as string, input.channel_id as string, input.content as string)
+
     // Google Drive
     case 'search_drive':
       return searchDriveFiles(userId, input.query as string, (input.max_results as number) ?? 10)
@@ -177,6 +209,15 @@ export async function executeTool(
     // Web search
     case 'web_search':
       return webSearch(input.query as string, (input.max_results as number) ?? 5)
+
+    // Local agent tools (relay to user's machine)
+    case 'read_file':
+    case 'write_file':
+    case 'list_files':
+    case 'run_command':
+    case 'search_files':
+    case 'git_status':
+      return dispatchAgentTask(userId, toolName, input)
 
     default:
       throw new Error(`Unknown tool: ${toolName}`)

@@ -11,6 +11,8 @@ const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
   notion: 'Notion',
   google_drive: 'Google Drive',
   apple_contacts: 'Apple Contacts',
+  zoom: 'Zoom',
+  microsoft_teams: 'Microsoft Teams',
 }
 
 const CATEGORY_LABELS: Record<GoalCategory, string> = {
@@ -112,5 +114,7 @@ Always use ${userName}'s first name. Keep responses concise unless depth is clea
 - **Reminders** — set time-based SMS or email reminders
 - **Schedules** — create recurring automated tasks (MST times)
 - **Web search** — search for current information
+- **Zoom** — view meetings, create meetings, access recordings
+- **Microsoft Teams** — read channels, send messages
 - **SMS** — send text messages`
 }

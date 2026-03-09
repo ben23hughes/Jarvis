@@ -385,6 +385,70 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Zoom ───────────────────────────────────────────────────────
+  {
+    name: 'get_zoom_meetings',
+    description: 'Get upcoming Zoom meetings',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'create_zoom_meeting',
+    description: 'Create a new Zoom meeting',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        topic: { type: 'string' },
+        start_time: { type: 'string', description: 'ISO 8601 datetime' },
+        duration: { type: 'number', description: 'Duration in minutes' },
+        agenda: { type: 'string' },
+      },
+      required: ['topic', 'start_time', 'duration'],
+    },
+  },
+  {
+    name: 'get_zoom_recordings',
+    description: 'Get recent Zoom cloud recordings',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        from: { type: 'string', description: 'Start date YYYY-MM-DD (default: 30 days ago)' },
+      },
+    },
+  },
+
+  // ── Microsoft Teams ────────────────────────────────────────────
+  {
+    name: 'get_teams_channels',
+    description: 'Get Teams and their channels the user belongs to',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_teams_messages',
+    description: 'Get recent messages from a Teams channel',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        team_id: { type: 'string' },
+        channel_id: { type: 'string' },
+        limit: { type: 'number', description: 'Default: 20' },
+      },
+      required: ['team_id', 'channel_id'],
+    },
+  },
+  {
+    name: 'send_teams_message',
+    description: 'Send a message to a Microsoft Teams channel',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        team_id: { type: 'string' },
+        channel_id: { type: 'string' },
+        content: { type: 'string' },
+      },
+      required: ['team_id', 'channel_id', 'content'],
+    },
+  },
+
   // ── Goals ──────────────────────────────────────────────────────
   {
     name: 'get_goals',
@@ -460,6 +524,77 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
       required: ['query'],
     },
   },
+
+  // ── Local Agent (file system + terminal) ───────────────────────
+  {
+    name: 'read_file',
+    description: "Read the contents of a file on the user's local machine. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'File path (absolute or relative to agent cwd)' },
+      },
+      required: ['path'],
+    },
+  },
+  {
+    name: 'write_file',
+    description: "Write or create a file on the user's local machine. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'File path to write' },
+        content: { type: 'string', description: 'Full file content' },
+      },
+      required: ['path', 'content'],
+    },
+  },
+  {
+    name: 'list_files',
+    description: "List files and directories on the user's local machine. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        directory: { type: 'string', description: 'Directory to list (default: current directory)' },
+        pattern: { type: 'string', description: 'Optional filter pattern (e.g. ".ts", "components")' },
+      },
+    },
+  },
+  {
+    name: 'run_command',
+    description: "Run a shell command on the user's local machine. Requires the Jarvis local agent to be running. Use for running tests, builds, git commands, etc.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        command: { type: 'string', description: 'Shell command to run' },
+        cwd: { type: 'string', description: 'Working directory (default: agent cwd)' },
+      },
+      required: ['command'],
+    },
+  },
+  {
+    name: 'search_files',
+    description: "Search file contents on the user's local machine using grep. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Text or pattern to search for' },
+        directory: { type: 'string', description: 'Directory to search in (default: cwd)' },
+        file_pattern: { type: 'string', description: 'File glob pattern (e.g. "*.ts", "*.tsx")' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'git_status',
+    description: "Get git status, current branch, and recent commits from the user's local repo. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        cwd: { type: 'string', description: 'Repo directory (default: agent cwd)' },
+      },
+    },
+  },
 ]
 
 const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
@@ -486,6 +621,12 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   create_notion_page: ['notion'],
   search_drive: ['google_drive'],
   get_drive_file: ['google_drive'],
+  get_zoom_meetings: ['zoom'],
+  create_zoom_meeting: ['zoom'],
+  get_zoom_recordings: ['zoom'],
+  get_teams_channels: ['microsoft_teams'],
+  get_teams_messages: ['microsoft_teams'],
+  send_teams_message: ['microsoft_teams'],
   // Always available (no OAuth needed)
   lookup_contact: [],
   list_contacts: [],
