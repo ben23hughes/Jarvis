@@ -2,6 +2,7 @@ import { CalendarWidget } from '@/components/dashboard/calendar-widget'
 import { EmailWidget } from '@/components/dashboard/email-widget'
 import { SlackWidget } from '@/components/dashboard/slack-widget'
 import { LinearWidget } from '@/components/dashboard/linear-widget'
+import { BriefingStream } from '@/components/dashboard/briefing-stream'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardPage() {
@@ -17,17 +18,8 @@ export default async function DashboardPage() {
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Good morning, {firstName}</h1>
-        <p className="text-muted-foreground">
-          {new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-          })}
-        </p>
-      </div>
+    <div className="space-y-8">
+      <BriefingStream firstName={firstName} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <CalendarWidget />
