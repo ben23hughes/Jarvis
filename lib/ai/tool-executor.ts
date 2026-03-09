@@ -11,6 +11,8 @@ import { createReminder, listReminders } from '@/lib/reminders'
 import { createSchedule, listSchedules, deleteSchedule, updateSchedule } from '@/lib/schedules'
 import { sendSmsToUser } from '@/lib/twilio'
 import { webSearch } from '@/lib/tavily'
+import { listGoals, createGoal, updateGoal } from '@/lib/goals'
+import type { GoalCategory, GoalStatus } from '@/lib/goals'
 
 export async function executeTool(
   toolName: string,
@@ -146,6 +148,27 @@ export async function executeTool(
       return deleteSchedule(input.id as string, userId)
     case 'toggle_schedule':
       return updateSchedule(input.id as string, userId, { enabled: input.enabled as boolean })
+
+    // Goals
+    case 'get_goals':
+      return listGoals(userId, input.category as GoalCategory | undefined, input.status as GoalStatus | undefined)
+    case 'create_goal':
+      return createGoal(userId, {
+        title: input.title as string,
+        category: input.category as GoalCategory,
+        description: input.description as string | undefined,
+        why: input.why as string | undefined,
+        target_date: input.target_date as string | undefined,
+      })
+    case 'update_goal':
+      return updateGoal(userId, input.goal_id as string, {
+        title: input.title as string | undefined,
+        description: input.description as string | undefined,
+        why: input.why as string | undefined,
+        progress: input.progress as number | undefined,
+        status: input.status as GoalStatus | undefined,
+        target_date: input.target_date as string | undefined,
+      })
 
     // SMS
     case 'send_sms':

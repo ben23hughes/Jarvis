@@ -385,6 +385,57 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Goals ──────────────────────────────────────────────────────
+  {
+    name: 'get_goals',
+    description: "Get the user's goals. Use this to understand what the user is working toward and provide contextual advice aligned with their aspirations.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: {
+          type: 'string',
+          description: 'Filter by category: spiritual, physical, financial, career, relationships, learning, or other',
+        },
+        status: {
+          type: 'string',
+          description: 'Filter by status: active, completed, or paused. Defaults to all.',
+        },
+      },
+    },
+  },
+  {
+    name: 'create_goal',
+    description: "Create a new goal for the user",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string', description: 'Goal title' },
+        category: { type: 'string', description: 'spiritual, physical, financial, career, relationships, learning, or other' },
+        description: { type: 'string', description: 'More detail about the goal' },
+        why: { type: 'string', description: "The user's deeper motivation for this goal" },
+        target_date: { type: 'string', description: 'Target completion date (YYYY-MM-DD)' },
+      },
+      required: ['title', 'category'],
+    },
+  },
+  {
+    name: 'update_goal',
+    description: "Update a goal's progress, status, or details",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        goal_id: { type: 'string', description: 'Goal ID' },
+        progress: { type: 'number', description: 'Progress percentage 0-100' },
+        status: { type: 'string', description: 'active, completed, or paused' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        why: { type: 'string' },
+        target_date: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['goal_id'],
+    },
+  },
+
   // ── SMS ────────────────────────────────────────────────────────
   {
     name: 'send_sms',
