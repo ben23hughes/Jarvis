@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   const firstName = profile?.full_name?.split(' ')[0] ?? 'there'
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <BriefingStream firstName={firstName} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
