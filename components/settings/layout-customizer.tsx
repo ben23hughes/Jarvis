@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { LayoutConfig, DashboardLayout, AnalyticsLayout } from '@/lib/layout-config'
 import {
   BarChart2, Bell, Calendar, CheckSquare, Mail,
-  Hash, LayoutDashboard, TrendingUp, Clock, Users,
+  Hash, LayoutDashboard, TrendingUp, Clock, Users, ChevronDown,
 } from 'lucide-react'
 
 const DASHBOARD_ITEMS: { key: keyof DashboardLayout; label: string; description: string; icon: React.ReactNode }[] = [
@@ -31,6 +31,7 @@ export function LayoutCustomizer({ initialConfig }: Props) {
   const [config, setConfig] = useState(initialConfig)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [open, setOpen] = useState<'dashboard' | 'analytics' | null>(null)
 
   async function toggle(page: 'dashboard' | 'analytics', key: string) {
     const updated: LayoutConfig = {
@@ -61,17 +62,21 @@ export function LayoutCustomizer({ initialConfig }: Props) {
         </div>
         <p className="text-sm text-muted-foreground">Choose what appears on your Dashboard and Analytics pages.</p>
       </CardHeader>
-      <CardContent className="space-y-6">
-        <Section
+      <CardContent className="space-y-2">
+        <Accordion
           title="Dashboard"
           icon={<LayoutDashboard className="h-4 w-4" />}
+          open={open === 'dashboard'}
+          onToggleOpen={() => setOpen(open === 'dashboard' ? null : 'dashboard')}
           items={DASHBOARD_ITEMS}
           values={config.dashboard}
           onToggle={(key) => toggle('dashboard', key)}
         />
-        <Section
+        <Accordion
           title="Analytics"
           icon={<BarChart2 className="h-4 w-4" />}
+          open={open === 'analytics'}
+          onToggleOpen={() => setOpen(open === 'analytics' ? null : 'analytics')}
           items={ANALYTICS_ITEMS}
           values={config.analytics}
           onToggle={(key) => toggle('analytics', key)}
@@ -81,44 +86,54 @@ export function LayoutCustomizer({ initialConfig }: Props) {
   )
 }
 
-function Section<T extends Record<string, boolean>>({
-  title, icon, items, values, onToggle,
+function Accordion<T extends Record<string, boolean>>({
+  title, icon, open, onToggleOpen, items, values, onToggle,
 }: {
   title: string
   icon: React.ReactNode
+  open: boolean
+  onToggleOpen: () => void
   items: { key: keyof T; label: string; description: string; icon: React.ReactNode }[]
   values: T
   onToggle: (key: string) => void
 }) {
+  const enabledCount = Object.values(values).filter(Boolean).length
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <span className="text-muted-foreground">{icon}</span>
-        {title}
-      </div>
-      <div className="space-y-1">
-        {items.map(({ key, label, description, icon: itemIcon }) => {
-          const enabled = values[key]
-          return (
-            <button
-              key={String(key)}
-              onClick={() => onToggle(String(key))}
-              className={`w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
-                enabled ? 'bg-background border' : 'bg-muted/30 border border-transparent opacity-50'
-              }`}
-            >
-              <span className="text-muted-foreground shrink-0">{itemIcon}</span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium">{label}</p>
-                <p className="text-xs text-muted-foreground">{description}</p>
-              </div>
-              <div className={`h-5 w-9 rounded-full transition-colors shrink-0 relative ${enabled ? 'bg-primary' : 'bg-muted'}`}>
-                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </div>
-            </button>
-          )
-        })}
-      </div>
+    <div className="rounded-lg border overflow-hidden">
+      <button
+        onClick={onToggleOpen}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/40 transition-colors"
+      >
+        <span className="text-muted-foreground shrink-0">{icon}</span>
+        <span className="flex-1 text-sm font-medium">{title}</span>
+        <span className="text-xs text-muted-foreground mr-2">{enabledCount}/{items.length} shown</span>
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="border-t divide-y">
+          {items.map(({ key, label, description, icon: itemIcon }) => {
+            const enabled = values[key]
+            return (
+              <button
+                key={String(key)}
+                onClick={() => onToggle(String(key))}
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
+              >
+                <span className="text-muted-foreground shrink-0">{itemIcon}</span>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-sm font-medium ${!enabled ? 'text-muted-foreground' : ''}`}>{label}</p>
+                  <p className="text-xs text-muted-foreground">{description}</p>
+                </div>
+                <div className={`h-5 w-9 rounded-full transition-colors shrink-0 relative ${enabled ? 'bg-primary' : 'bg-muted'}`}>
+                  <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

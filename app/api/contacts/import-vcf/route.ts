@@ -4,14 +4,24 @@ import { NextResponse } from 'next/server'
 import type { CreateContactInput } from '@/types/contacts'
 
 // Strip fields with large binary payloads before parsing (photos, sounds, etc.)
+// Must remove the header line AND its folded continuation lines (which start with whitespace).
 function stripBinaryFields(text: string): string {
-  // Remove any property whose value spans multiple lines of base64
-  // These are folded lines — after unfolding they look like PHOTO;ENCODING=BASE64;TYPE=JPEG:<data>
-  // We remove entire lines starting with PHOTO, SOUND, LOGO, KEY, X-ABCROP-RECTANGLE
-  return text
-    .split(/\r?\n/)
-    .filter((line) => !/^(PHOTO|SOUND|LOGO|KEY|X-ABCROP)[;:]/i.test(line.trimStart()))
-    .join('\n')
+  const lines = text.split(/\r?\n/)
+  const result: string[] = []
+  let skipping = false
+
+  for (const line of lines) {
+    const isContinuation = line.startsWith(' ') || line.startsWith('\t')
+    if (skipping && isContinuation) continue  // drop continuation of binary prop
+    skipping = false
+    if (/^(PHOTO|SOUND|LOGO|KEY|X-ABCROP)[;:]/i.test(line)) {
+      skipping = true  // drop this line and its continuations
+      continue
+    }
+    result.push(line)
+  }
+
+  return result.join('\n')
 }
 
 function parseVCards(text: string): CreateContactInput[] {
