@@ -48,7 +48,7 @@ async function runScheduledPrompt(userId: string, prompt: string): Promise<strin
 
   // Tool use loop
   let response = await anthropic.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1024,
     system: systemPrompt,
     tools,
@@ -65,7 +65,7 @@ async function runScheduledPrompt(userId: string, prompt: string): Promise<strin
     messages.push({ role: 'assistant', content: response.content })
     messages.push({ role: 'user', content: toolResults })
     response = await anthropic.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       tools,
