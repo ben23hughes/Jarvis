@@ -500,6 +500,162 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── X (Twitter) ────────────────────────────────────────────────
+  {
+    name: 'get_my_tweets',
+    description: 'Get recent tweets posted by the user',
+    input_schema: {
+      type: 'object' as const,
+      properties: { max_results: { type: 'number', description: 'Default: 10' } },
+    },
+  },
+  {
+    name: 'get_x_mentions',
+    description: 'Get recent mentions of the user on X (Twitter)',
+    input_schema: {
+      type: 'object' as const,
+      properties: { max_results: { type: 'number', description: 'Default: 10' } },
+    },
+  },
+  {
+    name: 'search_tweets',
+    description: 'Search recent tweets on X (Twitter)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Search query' },
+        max_results: { type: 'number', description: 'Default: 10' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'post_tweet',
+    description: 'Post a new tweet on X (Twitter)',
+    input_schema: {
+      type: 'object' as const,
+      properties: { text: { type: 'string', description: 'Tweet text (max 280 chars)' } },
+      required: ['text'],
+    },
+  },
+
+  // ── Facebook ───────────────────────────────────────────────────
+  {
+    name: 'get_facebook_pages',
+    description: 'Get Facebook Pages the user manages',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_page_posts',
+    description: 'Get recent posts from a Facebook Page',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        page_id: { type: 'string', description: 'Facebook Page ID' },
+        limit: { type: 'number', description: 'Default: 10' },
+      },
+      required: ['page_id'],
+    },
+  },
+  {
+    name: 'post_to_facebook',
+    description: 'Post a message to a Facebook Page',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        page_id: { type: 'string', description: 'Facebook Page ID' },
+        message: { type: 'string', description: 'Post content' },
+      },
+      required: ['page_id', 'message'],
+    },
+  },
+
+  // ── Instagram ──────────────────────────────────────────────────
+  {
+    name: 'get_instagram_profile',
+    description: 'Get the Instagram Business/Creator profile (followers, bio, post count)',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_instagram_media',
+    description: 'Get recent Instagram posts/media with engagement stats',
+    input_schema: {
+      type: 'object' as const,
+      properties: { limit: { type: 'number', description: 'Default: 12' } },
+    },
+  },
+  {
+    name: 'post_to_instagram',
+    description: 'Publish a photo to Instagram (requires a public image URL)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        image_url: { type: 'string', description: 'Publicly accessible URL of the image to post' },
+        caption: { type: 'string', description: 'Caption for the post' },
+      },
+      required: ['image_url'],
+    },
+  },
+
+  // ── LeadVault ──────────────────────────────────────────────────
+  {
+    name: 'count_leads',
+    description: 'Count how many leads match the given filters in the shared LeadVault database (~200k leads). Always call this before exporting so the user knows what they are getting.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        state: { type: 'string', description: 'State or region (e.g. "Utah", "TX", "California")' },
+        city: { type: 'string', description: 'City name (partial match)' },
+        industry: { type: 'string', description: 'Industry or sector (partial match)' },
+        company: { type: 'string', description: 'Company name (partial match)' },
+        title: { type: 'string', description: 'Job title or position (partial match)' },
+        email_status: { type: 'string', description: 'Email validity: "valid", "invalid", "risky", "unknown"' },
+        source_type: { type: 'string', description: 'Data source: "linkedin", "google_maps", "apollo", "web_scrape", "enriched"' },
+        persona_type: { type: 'string', description: '"company" or "person"' },
+        country: { type: 'string', description: 'Country (partial match)' },
+      },
+    },
+  },
+  {
+    name: 'search_leads',
+    description: 'Preview leads from LeadVault matching the given filters. Returns up to 25 records with full contact details.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        state: { type: 'string' },
+        city: { type: 'string' },
+        industry: { type: 'string' },
+        company: { type: 'string' },
+        title: { type: 'string' },
+        email_status: { type: 'string' },
+        source_type: { type: 'string' },
+        persona_type: { type: 'string' },
+        country: { type: 'string' },
+        limit: { type: 'number', description: 'Max records to return (default: 25)' },
+      },
+    },
+  },
+  {
+    name: 'export_leads_csv',
+    description: 'Export up to 10,000 leads from LeadVault as a CSV and email it to the user. Include at least one filter — do not export without filters.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        state: { type: 'string' },
+        city: { type: 'string' },
+        industry: { type: 'string' },
+        company: { type: 'string' },
+        title: { type: 'string' },
+        email_status: { type: 'string' },
+        source_type: { type: 'string' },
+        persona_type: { type: 'string' },
+        country: { type: 'string' },
+        filename: { type: 'string', description: 'CSV filename without extension (default: leads)' },
+        email_to: { type: 'string', description: 'Destination email. Defaults to the user\'s email.' },
+      },
+    },
+  },
+
   // ── SMS ────────────────────────────────────────────────────────
   {
     name: 'send_sms',
@@ -627,6 +783,16 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   get_teams_channels: ['microsoft_teams'],
   get_teams_messages: ['microsoft_teams'],
   send_teams_message: ['microsoft_teams'],
+  get_my_tweets: ['x'],
+  get_x_mentions: ['x'],
+  search_tweets: ['x'],
+  post_tweet: ['x'],
+  get_facebook_pages: ['facebook'],
+  get_page_posts: ['facebook'],
+  post_to_facebook: ['facebook'],
+  get_instagram_profile: ['instagram'],
+  get_instagram_media: ['instagram'],
+  post_to_instagram: ['instagram'],
   // Always available (no OAuth needed)
   lookup_contact: [],
   list_contacts: [],
@@ -641,6 +807,10 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   toggle_schedule: [],
   send_sms: [],
   web_search: [],
+  // LeadVault — always present; runtime throws if not configured
+  count_leads: [],
+  search_leads: [],
+  export_leads_csv: [],
 }
 
 export function getToolsForConnectedProviders(

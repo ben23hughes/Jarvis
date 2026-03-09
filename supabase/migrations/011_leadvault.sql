@@ -1,0 +1,5 @@
+-- LeadVault is a shared external database accessed via env vars.
+-- No schema changes needed in Jarvis's Supabase.
+-- Add the following to your .env.local:
+--   LEADVAULT_URL=https://your-leadvault-project.supabase.co
+--   LEADVAULT_SERVICE_KEY=eyJ...

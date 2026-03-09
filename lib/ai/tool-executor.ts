@@ -1,3 +1,6 @@
+import { getMyTweets, getMyMentions, searchTweets, postTweet } from '@/lib/integrations/x'
+import { getMyPages, getPagePosts, postToPage } from '@/lib/integrations/facebook'
+import { getInstagramProfile, getInstagramMedia, createInstagramPost } from '@/lib/integrations/instagram'
 import { getUpcomingEvents, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from '@/lib/integrations/google-calendar'
 import { getUpcomingMeetings, createZoomMeeting, getZoomRecordings } from '@/lib/integrations/zoom'
 import { getJoinedTeams, getTeamChannels, getChannelMessages, sendChannelMessage } from '@/lib/integrations/microsoft-teams'
@@ -16,6 +19,9 @@ import { webSearch } from '@/lib/tavily'
 import { listGoals, createGoal, updateGoal } from '@/lib/goals'
 import type { GoalCategory, GoalStatus } from '@/lib/goals'
 import { dispatchAgentTask } from '@/lib/agent'
+import { countLeads, searchLeads, exportLeadsAsCsv } from '@/lib/integrations/leadvault'
+import { sendEmailWithAttachment } from '@/lib/integrations/gmail'
+import { createClient } from '@supabase/supabase-js'
 
 export async function executeTool(
   toolName: string,
@@ -202,6 +208,32 @@ export async function executeTool(
         target_date: input.target_date as string | undefined,
       })
 
+    // X (Twitter)
+    case 'get_my_tweets':
+      return getMyTweets(userId, (input.max_results as number) ?? 10)
+    case 'get_x_mentions':
+      return getMyMentions(userId, (input.max_results as number) ?? 10)
+    case 'search_tweets':
+      return searchTweets(userId, input.query as string, (input.max_results as number) ?? 10)
+    case 'post_tweet':
+      return postTweet(userId, input.text as string)
+
+    // Facebook
+    case 'get_facebook_pages':
+      return getMyPages(userId)
+    case 'get_page_posts':
+      return getPagePosts(userId, input.page_id as string, (input.limit as number) ?? 10)
+    case 'post_to_facebook':
+      return postToPage(userId, input.page_id as string, input.message as string)
+
+    // Instagram
+    case 'get_instagram_profile':
+      return getInstagramProfile(userId)
+    case 'get_instagram_media':
+      return getInstagramMedia(userId, (input.limit as number) ?? 12)
+    case 'post_to_instagram':
+      return createInstagramPost(userId, input.image_url as string, (input.caption as string) ?? '')
+
     // SMS
     case 'send_sms':
       return sendSmsToUser(userId, input.message as string)
@@ -209,6 +241,76 @@ export async function executeTool(
     // Web search
     case 'web_search':
       return webSearch(input.query as string, (input.max_results as number) ?? 5)
+
+    // LeadVault (shared global database — no userId needed)
+    case 'count_leads':
+      return { count: await countLeads({
+        state: input.state as string | undefined,
+        city: input.city as string | undefined,
+        industry: input.industry as string | undefined,
+        company: input.company as string | undefined,
+        title: input.title as string | undefined,
+        email_status: input.email_status as string | undefined,
+        source_type: input.source_type as string | undefined,
+        persona_type: input.persona_type as string | undefined,
+        country: input.country as string | undefined,
+      }) }
+
+    case 'search_leads':
+      return searchLeads({
+        state: input.state as string | undefined,
+        city: input.city as string | undefined,
+        industry: input.industry as string | undefined,
+        company: input.company as string | undefined,
+        title: input.title as string | undefined,
+        email_status: input.email_status as string | undefined,
+        source_type: input.source_type as string | undefined,
+        persona_type: input.persona_type as string | undefined,
+        country: input.country as string | undefined,
+      }, (input.limit as number) ?? 25)
+
+    case 'export_leads_csv': {
+      const filter = {
+        state: input.state as string | undefined,
+        city: input.city as string | undefined,
+        industry: input.industry as string | undefined,
+        company: input.company as string | undefined,
+        title: input.title as string | undefined,
+        email_status: input.email_status as string | undefined,
+        source_type: input.source_type as string | undefined,
+        persona_type: input.persona_type as string | undefined,
+        country: input.country as string | undefined,
+      }
+      const { csv, count } = await exportLeadsAsCsv(filter)
+      if (count === 0) return { ok: false, message: 'No leads matched the filters.' }
+
+      // Resolve destination email
+      let toEmail = input.email_to as string | undefined
+      if (!toEmail) {
+        const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+        const { data: profile } = await sb.from('profiles').select('email').eq('id', userId).single()
+        toEmail = profile?.email
+      }
+      if (!toEmail) return { ok: false, message: 'No destination email found.' }
+
+      const filename = (input.filename as string | undefined) ?? 'leads.csv'
+      const filterDesc = [
+        input.state && `state: ${input.state}`,
+        input.city && `city: ${input.city}`,
+        input.industry && `industry: ${input.industry}`,
+        input.company && `company: ${input.company}`,
+        input.title && `title: ${input.title}`,
+      ].filter(Boolean).join(', ') || 'all leads'
+
+      await sendEmailWithAttachment(
+        userId,
+        toEmail,
+        `LeadVault Export — ${count.toLocaleString()} leads (${filterDesc})`,
+        `Hi,\n\nAttached is your LeadVault export with ${count.toLocaleString()} leads filtered by: ${filterDesc}.\n\nGenerated by Jarvis.`,
+        { filename, content: csv, mimeType: 'text/csv' }
+      )
+      return { ok: true, count, sent_to: toEmail, filename }
+    }
 
     // Local agent tools (relay to user's machine)
     case 'read_file':

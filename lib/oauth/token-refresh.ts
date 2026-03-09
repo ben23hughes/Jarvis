@@ -1,6 +1,7 @@
 import { getOAuthToken, storeOAuthToken } from './token-store'
 import { refreshZoomToken } from './zoom'
 import { refreshMicrosoftToken } from './microsoft-teams'
+import { refreshXToken } from './x'
 import type { IntegrationProvider } from '@/types/integrations'
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000 // 5 minutes
@@ -12,8 +13,11 @@ export async function getValidToken(
   const token = await getOAuthToken(userId, provider)
   if (!token) throw new Error(`No token found for provider: ${provider}`)
 
-  // These providers use non-expiring tokens
-  if (provider === 'linear' || provider === 'slack' || provider === 'github' || provider === 'notion') {
+  // These providers use non-expiring or very long-lived tokens
+  if (
+    provider === 'linear' || provider === 'slack' || provider === 'github' || provider === 'notion' ||
+    provider === 'facebook' || provider === 'instagram'
+  ) {
     return token.access_token
   }
 
@@ -51,6 +55,18 @@ export async function getValidToken(
     await storeOAuthToken({
       userId,
       provider: 'microsoft_teams',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
+  }
+
+  if (provider === 'x') {
+    const data = await refreshXToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'x',
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       expiresIn: data.expires_in,

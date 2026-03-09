@@ -111,6 +111,52 @@ export async function replyToEmail(
   }
 }
 
+export async function sendEmailWithAttachment(
+  userId: string,
+  to: string,
+  subject: string,
+  body: string,
+  attachment: { filename: string; content: string; mimeType: string }
+): Promise<{ id: string; threadId: string }> {
+  const gmail = await getGmailClient(userId)
+
+  const boundary = `boundary_${Date.now()}`
+  const attachmentBase64 = Buffer.from(attachment.content).toString('base64')
+
+  const message = [
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    body,
+    '',
+    `--${boundary}`,
+    `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+    `Content-Disposition: attachment; filename="${attachment.filename}"`,
+    'Content-Transfer-Encoding: base64',
+    '',
+    attachmentBase64,
+    '',
+    `--${boundary}--`,
+  ].join('\n')
+
+  const encoded = Buffer.from(message).toString('base64url')
+
+  const response = await gmail.users.messages.send({
+    userId: 'me',
+    requestBody: { raw: encoded },
+  })
+
+  return {
+    id: response.data.id ?? '',
+    threadId: response.data.threadId ?? '',
+  }
+}
+
 export async function searchEmails(
   userId: string,
   query: string,

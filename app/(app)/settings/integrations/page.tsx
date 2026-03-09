@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getConnectedProviders } from '@/lib/oauth/token-store'
 import { IntegrationCard } from '@/components/integrations/integration-card'
-import { Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive, Video, MessageSquare } from 'lucide-react'
+import { Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive, Video, MessageSquare, Twitter, Facebook, Instagram } from 'lucide-react'
 
 export default async function IntegrationsPage() {
   const supabase = await createClient()
@@ -72,6 +72,27 @@ export default async function IntegrationsPage() {
       icon: <MessageSquare className="h-5 w-5 text-purple-600" />,
       connectUrl: '/api/oauth/microsoft-teams/connect',
     },
+    {
+      provider: 'x' as const,
+      name: 'X (Twitter)',
+      description: 'Read your timeline, mentions, search tweets, and post on your behalf.',
+      icon: <Twitter className="h-5 w-5" />,
+      connectUrl: '/api/oauth/x/connect',
+    },
+    {
+      provider: 'facebook' as const,
+      name: 'Facebook',
+      description: 'Manage your Facebook Pages — read posts, post content, and track engagement.',
+      icon: <Facebook className="h-5 w-5 text-blue-600" />,
+      connectUrl: '/api/oauth/facebook/connect',
+    },
+    {
+      provider: 'instagram' as const,
+      name: 'Instagram',
+      description: 'View your media, profile stats, and publish photos. Requires a Business or Creator account linked to a Facebook Page.',
+      icon: <Instagram className="h-5 w-5 text-pink-500" />,
+      connectUrl: '/api/oauth/facebook/connect',
+    },
   ]
 
   return (
@@ -104,6 +125,14 @@ export default async function IntegrationsPage() {
         <p>
           <strong>Zoom & Microsoft Teams:</strong> Require app credentials configured in your environment.
           Contact your admin if these options are unavailable.
+        </p>
+      </div>
+
+      <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <p>
+          <strong>Facebook & Instagram:</strong> Connecting Facebook also connects Instagram — they share the same OAuth app.
+          Instagram requires a Business or Creator account linked to a Facebook Page.
+          X (Twitter) read access is limited on the free API tier.
         </p>
       </div>
     </div>

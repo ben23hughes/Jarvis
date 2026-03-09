@@ -59,6 +59,7 @@ export default async function SettingsPage() {
       <div className="max-w-2xl">
         <SchedulesManager initialSchedules={schedules} />
       </div>
+
     </div>
   )
 }

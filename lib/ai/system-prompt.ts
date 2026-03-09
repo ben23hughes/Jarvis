@@ -13,6 +13,9 @@ const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
   apple_contacts: 'Apple Contacts',
   zoom: 'Zoom',
   microsoft_teams: 'Microsoft Teams',
+  x: 'X (Twitter)',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
 }
 
 const CATEGORY_LABELS: Record<GoalCategory, string> = {
@@ -116,5 +119,6 @@ Always use ${userName}'s first name. Keep responses concise unless depth is clea
 - **Web search** — search for current information
 - **Zoom** — view meetings, create meetings, access recordings
 - **Microsoft Teams** — read channels, send messages
+- **LeadVault** — count, search, and export leads from the connected LeadVault database; export leads as a CSV sent via email
 - **SMS** — send text messages`
 }

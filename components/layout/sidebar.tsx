@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, MessageSquare, Settings, Zap, Users, BarChart2, Target, Cpu, X } from 'lucide-react'
+import { LayoutDashboard, MessageSquare, Settings, Zap, Users, BarChart2, Target, Cpu, Terminal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSidebar } from './sidebar-context'
 
@@ -12,6 +12,7 @@ const nav = [
   { href: '/contacts', icon: Users, label: 'Contacts' },
   { href: '/goals', icon: Target, label: 'Goals' },
   { href: '/analytics', icon: BarChart2, label: 'Analytics' },
+  { href: '/agent', icon: Terminal, label: 'Agent' },
   { href: '/jarvis4', icon: Cpu, label: 'Jarvis 4' },
   { href: '/settings/integrations', icon: Zap, label: 'Integrations' },
   { href: '/settings', icon: Settings, label: 'Settings' },
