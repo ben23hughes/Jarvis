@@ -1,18 +1,14 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import ReactMarkdown from 'react-markdown'
 import { RefreshCw } from 'lucide-react'
 
 function getGreeting(): string {
-  const hour = new Date().toLocaleString('en-US', {
-    timeZone: 'America/Denver',
-    hour: 'numeric',
-    hour12: false,
-  })
-  const h = parseInt(hour)
-  if (h < 12) return 'Good morning'
-  if (h < 17) return 'Good afternoon'
+  const hour = parseInt(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Denver', hour: 'numeric', hour12: false })
+  )
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
   return 'Good evening'
 }
 
@@ -20,11 +16,7 @@ function todayKey() {
   return 'jarvis-briefing-' + new Date().toLocaleDateString('en-US', { timeZone: 'America/Denver' })
 }
 
-interface Props {
-  firstName: string
-}
-
-export function BriefingStream({ firstName }: Props) {
+export function BriefingStream({ firstName }: { firstName: string }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
@@ -35,13 +27,8 @@ export function BriefingStream({ firstName }: Props) {
     const key = todayKey()
     if (!force) {
       const cached = sessionStorage.getItem(key)
-      if (cached) {
-        setText(cached)
-        setDone(true)
-        return
-      }
+      if (cached) { setText(cached); setDone(true); return }
     }
-
     sessionStorage.removeItem(key)
     setText('')
     setDone(false)
@@ -49,20 +36,16 @@ export function BriefingStream({ firstName }: Props) {
 
     const controller = new AbortController()
     abortRef.current = controller
-
     let accumulated = ''
 
     fetch('/api/dashboard/briefing', { signal: controller.signal })
       .then((res) => {
         const reader = res.body!.getReader()
         const decoder = new TextDecoder()
-
         function read() {
           reader.read().then(({ done: streamDone, value }) => {
             if (streamDone) return
-            const chunk = decoder.decode(value)
-            const lines = chunk.split('\n')
-            for (const line of lines) {
+            for (const line of decoder.decode(value).split('\n')) {
               if (!line.startsWith('data: ')) continue
               try {
                 const event = JSON.parse(line.slice(6))
@@ -93,38 +76,32 @@ export function BriefingStream({ firstName }: Props) {
   }, [])
 
   return (
-    <div className="space-y-2">
-      {/* Greeting */}
-      <div className="flex items-start justify-between">
+    <div className="space-y-1">
+      <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">
           {greeting}, {firstName}.
         </h1>
         <button
           onClick={() => startFetch(true)}
-          className="mt-1 rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-          title="Refresh briefing"
           disabled={loading}
+          className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          title="Refresh"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {/* Streaming briefing */}
-      <div className="relative min-h-[4rem]">
+      <div className="min-h-[1.5rem]">
         {loading && !text && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm pt-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-primary animate-pulse" />
-            Pulling your day together…
-          </div>
+          <span className="text-muted-foreground text-sm animate-pulse">Checking in on your day…</span>
         )}
-
         {text && (
-          <div className="prose prose-sm dark:prose-invert max-w-none text-foreground leading-relaxed">
-            <ReactMarkdown>{text}</ReactMarkdown>
+          <p className="text-muted-foreground leading-relaxed">
+            {text}
             {!done && (
-              <span className="inline-block h-4 w-0.5 bg-foreground ml-0.5 align-middle animate-[blink_1s_step-end_infinite]" />
+              <span className="inline-block h-4 w-0.5 bg-muted-foreground ml-0.5 align-middle animate-[blink_1s_step-end_infinite]" />
             )}
-          </div>
+          </p>
         )}
       </div>
     </div>
