@@ -2,6 +2,9 @@ import { getOAuthToken, storeOAuthToken } from './token-store'
 import { refreshZoomToken } from './zoom'
 import { refreshMicrosoftToken } from './microsoft-teams'
 import { refreshXToken } from './x'
+import { refreshSpotifyToken } from './spotify'
+import { refreshYnabToken } from './ynab'
+import { refreshRedditToken } from './reddit'
 import type { IntegrationProvider } from '@/types/integrations'
 
 const REFRESH_BUFFER_MS = 5 * 60 * 1000 // 5 minutes
@@ -16,7 +19,10 @@ export async function getValidToken(
   // These providers use non-expiring or very long-lived tokens
   if (
     provider === 'linear' || provider === 'slack' || provider === 'github' || provider === 'notion' ||
-    provider === 'facebook' || provider === 'instagram'
+    provider === 'facebook' || provider === 'instagram' ||
+    provider === 'apple_contacts' || provider === 'apple_calendar' ||
+    provider === 'todoist' || provider === 'govee' ||
+    provider === 'alpaca' || provider === 'coinbase'
   ) {
     return token.access_token
   }
@@ -69,6 +75,42 @@ export async function getValidToken(
       provider: 'x',
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
+  }
+
+  if (provider === 'spotify') {
+    const data = await refreshSpotifyToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'spotify',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token ?? token.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
+  }
+
+  if (provider === 'ynab') {
+    const data = await refreshYnabToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'ynab',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresIn: data.expires_in,
+    })
+    return data.access_token
+  }
+
+  if (provider === 'reddit') {
+    const data = await refreshRedditToken(token.refresh_token)
+    await storeOAuthToken({
+      userId,
+      provider: 'reddit',
+      accessToken: data.access_token,
+      refreshToken: token.refresh_token, // Reddit doesn't rotate refresh tokens
       expiresIn: data.expires_in,
     })
     return data.access_token

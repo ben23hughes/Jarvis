@@ -13,6 +13,24 @@ import {
   Users,
   ArrowRight,
   CheckCircle2,
+  Cpu,
+  Github,
+  FileText,
+  HardDrive,
+  Video,
+  Twitter,
+  Facebook,
+  Instagram,
+  Music,
+  DollarSign,
+  TrendingUp,
+  Lightbulb,
+  Apple,
+  Heart,
+  Cloud,
+  Newspaper,
+  MapPin,
+  Banknote,
 } from 'lucide-react'
 
 export default async function LandingPage() {
@@ -23,10 +41,17 @@ export default async function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <header className="border-b">
+      <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
           <span className="text-xl font-bold tracking-tight">Jarvis</span>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/jarvis-4"
+              className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
+            >
+              <Cpu className="h-3.5 w-3.5" />
+              Jarvis 4
+            </Link>
             <Link
               href="/login"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -139,16 +164,30 @@ export default async function LandingPage() {
           {[
             { icon: Calendar, name: 'Google Calendar' },
             { icon: Mail, name: 'Gmail' },
+            { icon: HardDrive, name: 'Google Drive' },
             { icon: MessageSquare, name: 'Slack' },
             { icon: CheckCircle2, name: 'Linear' },
             { icon: Users, name: 'Contacts' },
-            { icon: BarChart2, name: 'GitHub' },
-            { icon: Target, name: 'Notion' },
-            { icon: Zap, name: 'Google Drive' },
-            { icon: Brain, name: 'X (Twitter)' },
-            { icon: MessageSquare, name: 'Facebook' },
-            { icon: BarChart2, name: 'Instagram' },
-            { icon: Zap, name: 'Zoom' },
+            { icon: Github, name: 'GitHub' },
+            { icon: FileText, name: 'Notion' },
+            { icon: Video, name: 'Zoom' },
+            { icon: MessageSquare, name: 'Teams' },
+            { icon: Twitter, name: 'X (Twitter)' },
+            { icon: Facebook, name: 'Facebook' },
+            { icon: Instagram, name: 'Instagram' },
+            { icon: Music, name: 'Spotify' },
+            { icon: DollarSign, name: 'YNAB' },
+            { icon: CheckCircle2, name: 'Todoist' },
+            { icon: TrendingUp, name: 'Reddit' },
+            { icon: Banknote, name: 'Plaid Banking' },
+            { icon: TrendingUp, name: 'Alpaca Markets' },
+            { icon: Brain, name: 'Coinbase' },
+            { icon: Lightbulb, name: 'Govee Lights' },
+            { icon: Apple, name: 'Apple Calendar' },
+            { icon: Heart, name: 'Apple Health' },
+            { icon: Cloud, name: 'Weather' },
+            { icon: MapPin, name: 'Yelp' },
+            { icon: Newspaper, name: 'News' },
           ].map(({ icon: Icon, name }) => (
             <div
               key={name}
@@ -182,6 +221,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-5xl px-6 py-6 flex items-center justify-between text-xs text-muted-foreground">
           <span>Jarvis</span>
           <div className="flex gap-4">
+            <Link href="/jarvis-4" className="hover:text-foreground transition-colors">Jarvis 4</Link>
             <Link href="/login" className="hover:text-foreground transition-colors">Sign in</Link>
             <Link href="/signup" className="hover:text-foreground transition-colors">Sign up</Link>
           </div>

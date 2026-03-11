@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { toast } from 'sonner'
@@ -18,24 +17,18 @@ export default function SignupPage() {
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
-    if (accessCode.toLowerCase() !== 'ben') {
-      toast.error('Invalid access code')
-      return
-    }
     setLoading(true)
 
-    const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-      },
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessCode, name, email, password }),
     })
 
-    if (error) {
-      toast.error(error.message)
+    const data = await res.json()
+
+    if (!res.ok) {
+      toast.error(data.error ?? 'Something went wrong')
       setLoading(false)
       return
     }

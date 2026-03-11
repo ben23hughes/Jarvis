@@ -1,7 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { getConnectedProviders } from '@/lib/oauth/token-store'
 import { IntegrationCard } from '@/components/integrations/integration-card'
-import { Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive, Video, MessageSquare, Twitter, Facebook, Instagram } from 'lucide-react'
+import { AppleCalendarPanel } from '@/components/integrations/apple-calendar-panel'
+import { PlaidPanel } from '@/components/integrations/plaid-panel'
+import { GoveePanel } from '@/components/integrations/govee-panel'
+import { AlpacaPanel } from '@/components/integrations/alpaca-panel'
+import { CoinbasePanel } from '@/components/integrations/coinbase-panel'
+import {
+  Calendar, Mail, Hash, CheckSquare, Github, FileText, HardDrive, Video,
+  MessageSquare, Twitter, Facebook, Instagram, Music, DollarSign, CheckSquare2, TrendingUp,
+} from 'lucide-react'
 
 export default async function IntegrationsPage() {
   const supabase = await createClient()
@@ -93,6 +101,34 @@ export default async function IntegrationsPage() {
       icon: <Instagram className="h-5 w-5 text-pink-500" />,
       connectUrl: '/api/oauth/facebook/connect',
     },
+    {
+      provider: 'spotify' as const,
+      name: 'Spotify',
+      description: 'See what you are listening to, control playback, search music, and create playlists.',
+      icon: <Music className="h-5 w-5 text-green-500" />,
+      connectUrl: '/api/oauth/spotify/connect',
+    },
+    {
+      provider: 'ynab' as const,
+      name: 'YNAB',
+      description: 'Track your budget — see spending by category, account balances, and recent transactions.',
+      icon: <DollarSign className="h-5 w-5 text-green-600" />,
+      connectUrl: '/api/oauth/ynab/connect',
+    },
+    {
+      provider: 'todoist' as const,
+      name: 'Todoist',
+      description: 'Manage your tasks — view, create, and complete tasks. Jarvis can add tasks from conversation.',
+      icon: <CheckSquare2 className="h-5 w-5 text-red-500" />,
+      connectUrl: '/api/oauth/todoist/connect',
+    },
+    {
+      provider: 'reddit' as const,
+      name: 'Reddit',
+      description: 'Browse your home feed, explore subreddits, and search posts.',
+      icon: <TrendingUp className="h-5 w-5 text-orange-500" />,
+      connectUrl: '/api/oauth/reddit/connect',
+    },
   ]
 
   return (
@@ -112,19 +148,23 @@ export default async function IntegrationsPage() {
             connected={connected.includes(integration.provider)}
           />
         ))}
+        <AppleCalendarPanel />
+        <PlaidPanel />
+        <AlpacaPanel />
+        <CoinbasePanel />
+        <GoveePanel />
+      </div>
+
+      <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
+        <p>
+          <strong>Weather, News &amp; Yelp:</strong> These work automatically once OPENWEATHERMAP_API_KEY, NEWS_API_KEY, and YELP_API_KEY are set in your environment. Just ask Jarvis!
+        </p>
       </div>
 
       <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
         <p>
           <strong>Note:</strong> Google Calendar, Gmail, and Google Drive all use the same Google account connection.
           Connecting any one enables all three.
-        </p>
-      </div>
-
-      <div className="rounded-lg border bg-muted/50 p-4 text-sm text-muted-foreground">
-        <p>
-          <strong>Zoom & Microsoft Teams:</strong> Require app credentials configured in your environment.
-          Contact your admin if these options are unavailable.
         </p>
       </div>
 

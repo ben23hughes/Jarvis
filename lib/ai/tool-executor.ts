@@ -1,3 +1,5 @@
+import { getAppleCalendarEvents, createAppleCalendarEvent, deleteAppleCalendarEvent } from '@/lib/integrations/apple-calendar'
+import { getHealthSummary, getHealthMetrics } from '@/lib/health'
 import { getMyTweets, getMyMentions, searchTweets, postTweet } from '@/lib/integrations/x'
 import { getMyPages, getPagePosts, postToPage } from '@/lib/integrations/facebook'
 import { getInstagramProfile, getInstagramMedia, createInstagramPost } from '@/lib/integrations/instagram'
@@ -10,7 +12,7 @@ import { getMyIssues, searchLinearIssues, createLinearIssue, updateLinearIssue }
 import { getMyPullRequests, getAssignedIssues, searchGithub } from '@/lib/integrations/github'
 import { searchNotionPages, getNotionPageContent, createNotionPage } from '@/lib/integrations/notion'
 import { searchDriveFiles, getDriveFileContent } from '@/lib/integrations/google-drive'
-import { listContacts, createContact } from '@/lib/contacts'
+import { listContacts, createContact, updateContact } from '@/lib/contacts'
 import { saveMemory, listMemories } from '@/lib/memories'
 import { createReminder, listReminders } from '@/lib/reminders'
 import { createSchedule, listSchedules, deleteSchedule, updateSchedule } from '@/lib/schedules'
@@ -22,6 +24,17 @@ import { dispatchAgentTask } from '@/lib/agent'
 import { countLeads, searchLeads, exportLeadsAsCsv } from '@/lib/integrations/leadvault'
 import { sendEmailWithAttachment } from '@/lib/integrations/gmail'
 import { createClient } from '@supabase/supabase-js'
+import { getNowPlaying, getRecentlyPlayed, getTopTracks, searchSpotify, controlPlayback, setVolume } from '@/lib/integrations/spotify'
+import { getYnabBudgetSummary, getYnabAccounts, getYnabTransactions } from '@/lib/integrations/ynab'
+import { getTasks, createTask, completeTask } from '@/lib/integrations/todoist'
+import { getHomeFeed, getSubredditPosts, searchReddit } from '@/lib/integrations/reddit'
+import { getCurrentWeather, getWeatherForecast } from '@/lib/integrations/weather'
+import { searchYelp } from '@/lib/integrations/yelp'
+import { getTopHeadlines, searchNews } from '@/lib/integrations/news'
+import { listGoveeDevices, turnGoveeLight, setGoveeBrightness, setGoveeColor } from '@/lib/integrations/govee'
+import { getPlaidAccounts, getPlaidTransactions, getSpendingSummary } from '@/lib/integrations/plaid'
+import { getAlpacaAccount, getAlpacaPositions, getAlpacaPortfolioHistory, getAlpacaOrders } from '@/lib/integrations/alpaca'
+import { getCoinbasePortfolio, getCoinbaseTransactions, getCryptoSpotPrice } from '@/lib/integrations/coinbase'
 
 export async function executeTool(
   toolName: string,
@@ -155,6 +168,16 @@ export async function executeTool(
         title: input.title as string | undefined,
         notes: input.notes as string | undefined,
       })
+    case 'update_contact':
+      return updateContact(userId, input.contact_id as string, {
+        first_name: input.first_name as string | undefined,
+        last_name: input.last_name as string | undefined,
+        email: input.email as string | undefined,
+        phone: input.phone as string | undefined,
+        company: input.company as string | undefined,
+        title: input.title as string | undefined,
+        notes: input.notes as string | undefined,
+      })
 
     // Memory
     case 'remember':
@@ -208,6 +231,26 @@ export async function executeTool(
         target_date: input.target_date as string | undefined,
       })
 
+    // Apple Calendar
+    case 'get_apple_calendar_events':
+      return getAppleCalendarEvents(userId, (input.days_ahead as number) ?? 14)
+    case 'create_apple_calendar_event':
+      return createAppleCalendarEvent(userId, {
+        title: input.title as string,
+        start: input.start as string,
+        end: input.end as string,
+        description: input.description as string | undefined,
+        location: input.location as string | undefined,
+      })
+    case 'delete_apple_calendar_event':
+      return deleteAppleCalendarEvent(userId, input.uid as string)
+
+    // Health
+    case 'get_health_summary':
+      return getHealthSummary(userId, (input.days as number) ?? 7)
+    case 'get_health_metrics':
+      return getHealthMetrics(userId, (input.days as number) ?? 30)
+
     // X (Twitter)
     case 'get_my_tweets':
       return getMyTweets(userId, (input.max_results as number) ?? 10)
@@ -233,6 +276,117 @@ export async function executeTool(
       return getInstagramMedia(userId, (input.limit as number) ?? 12)
     case 'post_to_instagram':
       return createInstagramPost(userId, input.image_url as string, (input.caption as string) ?? '')
+
+    // Spotify
+    case 'get_now_playing':
+      return getNowPlaying(userId)
+    case 'get_recently_played':
+      return getRecentlyPlayed(userId, (input.limit as number) ?? 10)
+    case 'get_top_tracks':
+      return getTopTracks(userId, (input.time_range as string) ?? 'short_term', (input.limit as number) ?? 10)
+    case 'search_spotify':
+      return searchSpotify(userId, input.query as string, (input.type as string) ?? 'track,artist,playlist')
+    case 'control_spotify':
+      return controlPlayback(userId, input.action as 'play' | 'pause' | 'next' | 'previous')
+    case 'set_spotify_volume':
+      return setVolume(userId, input.volume as number)
+
+    // YNAB
+    case 'get_ynab_summary':
+      return getYnabBudgetSummary(userId)
+    case 'get_ynab_accounts':
+      return getYnabAccounts(userId)
+    case 'get_ynab_transactions':
+      return getYnabTransactions(userId, 'last-used', (input.days as number) ?? 30)
+
+    // Todoist
+    case 'get_tasks':
+      return getTasks(userId, input.filter as string | undefined)
+    case 'create_task':
+      return createTask(userId, {
+        content: input.content as string,
+        description: input.description as string | undefined,
+        due_string: input.due_string as string | undefined,
+        priority: input.priority as number | undefined,
+      })
+    case 'complete_task':
+      return completeTask(userId, input.task_id as string)
+
+    // Plaid
+    case 'get_bank_accounts':
+      return getPlaidAccounts(userId)
+    case 'get_transactions':
+      return getPlaidTransactions(userId, (input.days as number) ?? 30)
+    case 'get_spending_summary':
+      return getSpendingSummary(userId, (input.days as number) ?? 30)
+
+    // Weather
+    case 'get_weather':
+      return getCurrentWeather(input.location as string)
+    case 'get_weather_forecast':
+      return getWeatherForecast(input.location as string, (input.days as number) ?? 5)
+
+    // Yelp
+    case 'search_yelp':
+      return searchYelp({
+        location: input.location as string,
+        term: input.term as string | undefined,
+        limit: (input.limit as number) ?? 5,
+        sort_by: input.sort_by as 'best_match' | 'rating' | 'review_count' | 'distance' | undefined,
+        open_now: input.open_now as boolean | undefined,
+      })
+
+    // News
+    case 'get_news':
+      return getTopHeadlines({
+        category: input.category as string | undefined,
+        query: input.query as string | undefined,
+        country: (input.country as string) ?? 'us',
+        pageSize: (input.page_size as number) ?? 10,
+      })
+    case 'search_news':
+      return searchNews(input.query as string, {
+        sortBy: (input.sort_by as 'relevancy' | 'popularity' | 'publishedAt') ?? 'publishedAt',
+        pageSize: (input.page_size as number) ?? 10,
+      })
+
+    // Reddit
+    case 'get_reddit_feed':
+      return getHomeFeed(userId, (input.limit as number) ?? 15)
+    case 'get_subreddit_posts':
+      return getSubredditPosts(userId, input.subreddit as string, (input.sort as string) ?? 'hot', (input.limit as number) ?? 10)
+    case 'search_reddit':
+      return searchReddit(userId, input.query as string, input.subreddit as string | undefined, (input.limit as number) ?? 10)
+
+    // Govee
+    case 'list_govee_lights':
+      return listGoveeDevices(userId)
+    case 'control_govee_light': {
+      const action = input.action as string
+      if (action === 'turn_on') return turnGoveeLight(userId, input.device as string, input.model as string, true)
+      if (action === 'turn_off') return turnGoveeLight(userId, input.device as string, input.model as string, false)
+      if (action === 'set_brightness') return setGoveeBrightness(userId, input.device as string, input.model as string, input.brightness as number)
+      if (action === 'set_color') return setGoveeColor(userId, input.device as string, input.model as string, input.color_r as number, input.color_g as number, input.color_b as number)
+      throw new Error(`Unknown govee action: ${action}`)
+    }
+
+    // Alpaca
+    case 'get_alpaca_account':
+      return getAlpacaAccount(userId)
+    case 'get_alpaca_positions':
+      return getAlpacaPositions(userId)
+    case 'get_alpaca_portfolio_history':
+      return getAlpacaPortfolioHistory(userId, (input.period as string) ?? '1M')
+    case 'get_alpaca_orders':
+      return getAlpacaOrders(userId, (input.status as string) ?? 'all', (input.limit as number) ?? 20)
+
+    // Coinbase
+    case 'get_coinbase_portfolio':
+      return getCoinbasePortfolio(userId)
+    case 'get_coinbase_transactions':
+      return getCoinbaseTransactions(userId, input.account_id as string, (input.limit as number) ?? 25)
+    case 'get_crypto_price':
+      return getCryptoSpotPrice(input.currency_pair as string)
 
     // SMS
     case 'send_sms':

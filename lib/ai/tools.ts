@@ -297,6 +297,24 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
       required: ['first_name'],
     },
   },
+  {
+    name: 'update_contact',
+    description: 'Update an existing contact — add or change their email, phone, company, name, notes, etc. First use lookup_contact to find the contact id.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contact_id: { type: 'string', description: 'The contact id from lookup_contact' },
+        first_name: { type: 'string' },
+        last_name: { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        company: { type: 'string' },
+        title: { type: 'string' },
+        notes: { type: 'string' },
+      },
+      required: ['contact_id'],
+    },
+  },
 
   // ── Memory ─────────────────────────────────────────────────────
   {
@@ -382,6 +400,66 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
         enabled: { type: 'boolean', description: 'true to enable, false to pause' },
       },
       required: ['id', 'enabled'],
+    },
+  },
+
+  // ── Apple Calendar ─────────────────────────────────────────────
+  {
+    name: 'get_apple_calendar_events',
+    description: 'Get upcoming events from Apple Calendar (iCloud CalDAV)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days_ahead: { type: 'number', description: 'How many days ahead to look (default: 14)' },
+      },
+    },
+  },
+  {
+    name: 'create_apple_calendar_event',
+    description: 'Create a new event in Apple Calendar',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title: { type: 'string' },
+        start: { type: 'string', description: 'ISO 8601 datetime' },
+        end: { type: 'string', description: 'ISO 8601 datetime' },
+        description: { type: 'string' },
+        location: { type: 'string' },
+      },
+      required: ['title', 'start', 'end'],
+    },
+  },
+  {
+    name: 'delete_apple_calendar_event',
+    description: 'Delete an event from Apple Calendar by its UID',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        uid: { type: 'string', description: 'Event UID from get_apple_calendar_events' },
+      },
+      required: ['uid'],
+    },
+  },
+
+  // ── Health ─────────────────────────────────────────────────────
+  {
+    name: 'get_health_summary',
+    description: "Get a summary of the user's recent health metrics (steps, heart rate, sleep, calories, weight, exercise). Data comes from their Apple Health import.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'Number of days to summarize (default: 7)' },
+      },
+    },
+  },
+  {
+    name: 'get_health_metrics',
+    description: "Get daily health metrics for the user over a period. Returns per-day data for deeper analysis.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'How many days back to look (default: 30)' },
+      },
     },
   },
 
@@ -656,6 +734,347 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     },
   },
 
+  // ── Spotify ────────────────────────────────────────────────────────────────────────────────────────────────────────
+  {
+    name: 'get_now_playing',
+    description: 'Get the currently playing song on Spotify',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_recently_played',
+    description: 'Get recently played tracks on Spotify',
+    input_schema: {
+      type: 'object' as const,
+      properties: { limit: { type: 'number', description: 'Default: 10' } },
+    },
+  },
+  {
+    name: 'get_top_tracks',
+    description: 'Get top tracks on Spotify',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        time_range: { type: 'string', description: 'short_term (4 weeks), medium_term (6 months), long_term (all time)' },
+        limit: { type: 'number', description: 'Default: 10' },
+      },
+    },
+  },
+  {
+    name: 'search_spotify',
+    description: 'Search Spotify for tracks, artists, or playlists',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string' },
+        type: { type: 'string', description: 'track, artist, playlist (default: track,artist,playlist)' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'control_spotify',
+    description: 'Control Spotify playback (play, pause, next, previous)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        action: { type: 'string', description: 'play, pause, next, or previous' },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name: 'set_spotify_volume',
+    description: 'Set Spotify volume',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        volume: { type: 'number', description: '0-100' },
+      },
+      required: ['volume'],
+    },
+  },
+
+  // ── YNAB ───────────────────────────────────────────────────────
+  {
+    name: 'get_ynab_summary',
+    description: "Get the user's YNAB budget summary for the current month — budgeted vs spent by category",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_ynab_accounts',
+    description: 'Get YNAB account balances',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_ynab_transactions',
+    description: 'Get recent YNAB transactions',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'How many days back (default: 30)' },
+      },
+    },
+  },
+
+  // ── Todoist ────────────────────────────────────────────────────
+  {
+    name: 'get_tasks',
+    description: "Get the user's Todoist tasks",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        filter: { type: 'string', description: 'Todoist filter: today, overdue, p1, #ProjectName, etc.' },
+      },
+    },
+  },
+  {
+    name: 'create_task',
+    description: 'Create a new task in Todoist',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        content: { type: 'string', description: 'Task name' },
+        description: { type: 'string' },
+        due_string: { type: 'string', description: 'Natural language due date: "tomorrow", "next monday at 2pm"' },
+        priority: { type: 'number', description: '1=normal, 2=medium, 3=high, 4=urgent' },
+      },
+      required: ['content'],
+    },
+  },
+  {
+    name: 'complete_task',
+    description: 'Mark a Todoist task as complete',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        task_id: { type: 'string', description: 'Task ID from get_tasks' },
+      },
+      required: ['task_id'],
+    },
+  },
+
+  // ── Plaid (Banking) ────────────────────────────────────────────
+  {
+    name: 'get_bank_accounts',
+    description: "Get the user's connected bank accounts and current balances",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_transactions',
+    description: 'Get recent bank/credit card transactions from connected accounts',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'How many days back (default: 30)' },
+      },
+    },
+  },
+  {
+    name: 'get_spending_summary',
+    description: 'Get a summary of spending by category from connected bank accounts',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        days: { type: 'number', description: 'How many days back (default: 30)' },
+      },
+    },
+  },
+
+  // ── Weather ────────────────────────────────────────────────────
+  {
+    name: 'get_weather',
+    description: 'Get the current weather for a location',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        location: { type: 'string', description: 'City name or "city, country" e.g. "Denver, US"' },
+      },
+      required: ['location'],
+    },
+  },
+  {
+    name: 'get_weather_forecast',
+    description: 'Get the weather forecast for a location',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        location: { type: 'string', description: 'City name' },
+        days: { type: 'number', description: 'Number of days (default: 5)' },
+      },
+      required: ['location'],
+    },
+  },
+
+  // ── Yelp ───────────────────────────────────────────────────────
+  {
+    name: 'search_yelp',
+    description: 'Search for local businesses, restaurants, services on Yelp',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        location: { type: 'string', description: 'City or address' },
+        term: { type: 'string', description: 'What to search for (e.g. "sushi", "coffee", "plumber")' },
+        limit: { type: 'number', description: 'Default: 5' },
+        sort_by: { type: 'string', description: 'best_match, rating, review_count, distance' },
+        open_now: { type: 'boolean' },
+      },
+      required: ['location', 'term'],
+    },
+  },
+
+  // ── News ───────────────────────────────────────────────────────
+  {
+    name: 'get_news',
+    description: 'Get top news headlines by category or topic',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        category: { type: 'string', description: 'business, entertainment, health, science, sports, technology' },
+        query: { type: 'string', description: 'Optional search query' },
+        country: { type: 'string', description: 'Country code e.g. "us" (default: us)' },
+        page_size: { type: 'number', description: 'Default: 10' },
+      },
+    },
+  },
+  {
+    name: 'search_news',
+    description: 'Search for news articles on any topic',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Search terms' },
+        sort_by: { type: 'string', description: 'relevancy, popularity, publishedAt (default: publishedAt)' },
+        page_size: { type: 'number', description: 'Default: 10' },
+      },
+      required: ['query'],
+    },
+  },
+
+  // ── Reddit ─────────────────────────────────────────────────────
+  {
+    name: 'get_reddit_feed',
+    description: "Get posts from the user's Reddit home feed",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        limit: { type: 'number', description: 'Default: 15' },
+      },
+    },
+  },
+  {
+    name: 'get_subreddit_posts',
+    description: 'Get posts from a specific subreddit',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        subreddit: { type: 'string', description: 'Subreddit name without r/' },
+        sort: { type: 'string', description: 'hot, new, top, rising (default: hot)' },
+        limit: { type: 'number', description: 'Default: 10' },
+      },
+      required: ['subreddit'],
+    },
+  },
+  {
+    name: 'search_reddit',
+    description: 'Search Reddit for posts',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string' },
+        subreddit: { type: 'string', description: 'Optional: limit to a specific subreddit' },
+        limit: { type: 'number', description: 'Default: 10' },
+      },
+      required: ['query'],
+    },
+  },
+
+  // ── Govee Lights ───────────────────────────────────────────────
+  {
+    name: 'list_govee_lights',
+    description: "List all the user's Govee smart light devices",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'control_govee_light',
+    description: 'Control a Govee smart light — turn on/off, set brightness or color',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        device: { type: 'string', description: 'Device ID from list_govee_lights' },
+        model: { type: 'string', description: 'Device model from list_govee_lights' },
+        action: { type: 'string', description: 'turn_on, turn_off, set_brightness, set_color' },
+        brightness: { type: 'number', description: '0-100 (for set_brightness)' },
+        color_r: { type: 'number', description: 'Red 0-255 (for set_color)' },
+        color_g: { type: 'number', description: 'Green 0-255 (for set_color)' },
+        color_b: { type: 'number', description: 'Blue 0-255 (for set_color)' },
+      },
+      required: ['device', 'model', 'action'],
+    },
+  },
+
+  // ── Alpaca Markets ─────────────────────────────────────────────
+  {
+    name: 'get_alpaca_account',
+    description: 'Get Alpaca brokerage account details: portfolio value, buying power, cash, equity',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_alpaca_positions',
+    description: 'Get current stock/ETF positions in the Alpaca portfolio',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_alpaca_portfolio_history',
+    description: 'Get portfolio value history over time from Alpaca',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        period: { type: 'string', description: 'Time period: 1D, 1W, 1M, 3M, 6M, 1A (default: 1M)' },
+      },
+    },
+  },
+  {
+    name: 'get_alpaca_orders',
+    description: 'Get recent orders from Alpaca',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        status: { type: 'string', description: 'all, open, closed (default: all)' },
+        limit: { type: 'number', description: 'Max orders to return (default: 20)' },
+      },
+    },
+  },
+
+  // ── Coinbase ───────────────────────────────────────────────────
+  {
+    name: 'get_coinbase_portfolio',
+    description: 'Get crypto wallets/accounts from Coinbase with non-zero balances',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'get_coinbase_transactions',
+    description: 'Get recent transactions for a Coinbase account',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        account_id: { type: 'string', description: 'Account ID from get_coinbase_portfolio' },
+        limit: { type: 'number', description: 'Max transactions (default: 25)' },
+      },
+      required: ['account_id'],
+    },
+  },
+  {
+    name: 'get_crypto_price',
+    description: 'Get the current spot price for a cryptocurrency pair (e.g. BTC-USD, ETH-USD)',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        currency_pair: { type: 'string', description: 'e.g. BTC-USD, ETH-USD, SOL-USD' },
+      },
+      required: ['currency_pair'],
+    },
+  },
+
   // ── SMS ────────────────────────────────────────────────────────
   {
     name: 'send_sms',
@@ -905,10 +1324,59 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   get_instagram_profile: ['instagram'],
   get_instagram_media: ['instagram'],
   post_to_instagram: ['instagram'],
+  get_apple_calendar_events: ['apple_calendar'],
+  create_apple_calendar_event: ['apple_calendar'],
+  delete_apple_calendar_event: ['apple_calendar'],
+  get_health_summary: [],
+  get_health_metrics: [],
+  // Spotify
+  get_now_playing: ['spotify'],
+  get_recently_played: ['spotify'],
+  get_top_tracks: ['spotify'],
+  search_spotify: ['spotify'],
+  control_spotify: ['spotify'],
+  set_spotify_volume: ['spotify'],
+  // YNAB
+  get_ynab_summary: ['ynab'],
+  get_ynab_accounts: ['ynab'],
+  get_ynab_transactions: ['ynab'],
+  // Todoist
+  get_tasks: ['todoist'],
+  create_task: ['todoist'],
+  complete_task: ['todoist'],
+  // Plaid
+  get_bank_accounts: ['plaid'],
+  get_transactions: ['plaid'],
+  get_spending_summary: ['plaid'],
+  // Weather — always available (env key)
+  get_weather: [],
+  get_weather_forecast: [],
+  // Yelp — always available
+  search_yelp: [],
+  // News — always available
+  get_news: [],
+  search_news: [],
+  // Reddit
+  get_reddit_feed: ['reddit'],
+  get_subreddit_posts: ['reddit'],
+  search_reddit: ['reddit'],
+  // Govee
+  list_govee_lights: ['govee'],
+  control_govee_light: ['govee'],
+  // Alpaca
+  get_alpaca_account: ['alpaca'],
+  get_alpaca_positions: ['alpaca'],
+  get_alpaca_portfolio_history: ['alpaca'],
+  get_alpaca_orders: ['alpaca'],
+  // Coinbase
+  get_coinbase_portfolio: ['coinbase'],
+  get_coinbase_transactions: ['coinbase'],
+  get_crypto_price: [],
   // Always available (no OAuth needed)
   lookup_contact: [],
   list_contacts: [],
   create_contact: [],
+  update_contact: [],
   remember: [],
   recall_memories: [],
   create_reminder: [],

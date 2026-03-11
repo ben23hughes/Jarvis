@@ -11,11 +11,20 @@ const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
   notion: 'Notion',
   google_drive: 'Google Drive',
   apple_contacts: 'Apple Contacts',
+  apple_calendar: 'Apple Calendar',
   zoom: 'Zoom',
   microsoft_teams: 'Microsoft Teams',
   x: 'X (Twitter)',
   facebook: 'Facebook',
   instagram: 'Instagram',
+  spotify: 'Spotify',
+  ynab: 'YNAB',
+  todoist: 'Todoist',
+  reddit: 'Reddit',
+  plaid: 'Plaid (Banking)',
+  govee: 'Govee',
+  alpaca: 'Alpaca Markets',
+  coinbase: 'Coinbase',
 }
 
 const CATEGORY_LABELS: Record<GoalCategory, string> = {
@@ -122,5 +131,7 @@ Always use ${userName}'s first name. Keep responses concise unless depth is clea
 - **LeadVault** — count, search, and export leads from the connected LeadVault database; export leads as a CSV sent via email
 - **Browser control** — navigate websites, click, fill forms, take screenshots (requires local agent); you can literally see the page via screenshots
 - **Screen control** — screenshot the full desktop, click at coordinates, type text (requires local agent, macOS)
+- **Alpaca Markets** — portfolio value, positions, order history
+- **Coinbase** — crypto wallet balances, transactions, spot prices
 - **SMS** — send text messages`
 }
