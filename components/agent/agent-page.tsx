@@ -105,25 +105,26 @@ const SETUP_STEPS = [
     n: 4,
     title: 'Download the agent script',
     body: 'This downloads the agent script into the folder you just created. Paste the command below and press Enter, or use the Download button.',
-    code: () => `curl -o jarvis-agent.mjs https://www.jarvis4.com/jarvis-agent.mjs`,
+    code: () => `curl -L -o jarvis-agent.mjs https://www.jarvis4.com/jarvis-agent.mjs`,
     downloadAgent: true,
   },
   {
     n: 5,
     title: 'Add your API key',
-    body: 'This creates a settings file with your personal key so the agent knows who you are. Copy the command below — it already has your key filled in — and paste it into Terminal.',
-    code: (key: string) => `printf 'JARVIS_KEY=${key}\\nJARVIS_URL=https://www.jarvis4.com' > .env`,
+    body: 'This creates a settings file with your personal key. Run each line one at a time — copy the first line, press Enter, then copy the second line and press Enter.',
+    code: (key: string) => `echo 'JARVIS_KEY=${key}' > .env\necho 'JARVIS_URL=https://www.jarvis4.com' >> .env`,
   },
   {
     n: 6,
     title: 'Start the agent',
-    body: 'Run this command to start the agent. You\'ll see "Jarvis Agent" printed in the terminal — that means it\'s working. Leave this window open while you use Jarvis. The green dot at the top of this page will turn on.',
+    body: 'Run this command to start the agent. You\'ll see "🤖 Jarvis Agent" and "Server: https://www.jarvis4.com" printed — that means it\'s working. Leave this window open while you use Jarvis. The green dot at the top of this page will turn on within a few seconds.',
     code: () => `node jarvis-agent.mjs`,
   },
   {
     n: 7,
     title: 'Start chatting',
-    body: 'Go to the Chat page and start asking Jarvis to do things on your computer — read files, run commands, browse the web, and more. Next time you want to use the agent, open Terminal and run: cd ~/jarvis-agent && node jarvis-agent.mjs',
+    body: 'Go to the Chat page and start asking Jarvis to do things on your computer — read files, run commands, browse the web, and more. Next time you want to use the agent, open Terminal and run the two commands below.',
+    code: () => `cd ~/jarvis-agent\nnode jarvis-agent.mjs`,
   },
 ]
 
