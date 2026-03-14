@@ -31,6 +31,11 @@ export async function middleware(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname
 
+  // Allow public static files through without auth
+  if (pathname === '/jarvis-agent.mjs') {
+    return NextResponse.next()
+  }
+
   // Redirect unauthenticated users away from protected routes
   const protectedPaths = ['/dashboard', '/chat', '/settings', '/contacts', '/analytics', '/agent', '/jarvis4', '/goals', '/health', '/contacts']
   if (!user && protectedPaths.some(p => pathname.startsWith(p))) {
