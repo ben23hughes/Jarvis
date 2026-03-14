@@ -4,11 +4,11 @@
  * Polls the Jarvis server for tasks and executes them on your machine.
  *
  * Usage:
- *   JARVIS_KEY=jv_xxx JARVIS_URL=http://localhost:3000 node agent/index.mjs
+ *   JARVIS_KEY=jv_xxx JARVIS_URL=https://jarvis4.com node agent/index.mjs
  *
  * Or set these in agent/.env (loaded automatically):
  *   JARVIS_KEY=jv_xxx
- *   JARVIS_URL=http://localhost:3000
+ *   JARVIS_URL=https://jarvis4.com
  */
 
 import { execSync } from 'child_process'
@@ -27,7 +27,7 @@ if (existsSync(envPath)) {
 }
 
 const JARVIS_KEY = process.env.JARVIS_KEY
-const JARVIS_URL = (process.env.JARVIS_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+const JARVIS_URL = (process.env.JARVIS_URL ?? 'https://jarvis4.com').replace(/\/$/, '')
 const POLL_INTERVAL = 1500 // ms
 const HEARTBEAT_INTERVAL = 5000 // ms
 
