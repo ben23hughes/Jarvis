@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Send } from 'lucide-react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { Send, Mic, MicOff } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageBubble } from './message-bubble'
@@ -18,8 +18,42 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isListening, setIsListening] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
+
+  const toggleListening = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition: typeof window.SpeechRecognition }).webkitSpeechRecognition
+    if (!SpeechRecognition) {
+      alert('Voice input is not supported in this browser. Try Chrome or Edge.')
+      return
+    }
+
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = false
+    recognition.lang = 'en-US'
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript
+      setInput((prev) => prev ? `${prev} ${transcript}` : transcript)
+      setIsListening(false)
+    }
+
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend = () => setIsListening(false)
+
+    recognitionRef.current = recognition
+    recognition.start()
+    setIsListening(true)
+  }, [isListening])
 
   // Typewriter effect for greeting
   useEffect(() => {
@@ -195,11 +229,21 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Message Jarvis... (Enter to send, Shift+Enter for new line)"
+          placeholder={isListening ? 'Listening...' : 'Message Jarvis... (Enter to send, Shift+Enter for new line)'}
           className="min-h-[52px] flex-1 resize-none rounded-md border bg-background px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
           rows={1}
           disabled={isLoading}
         />
+        <Button
+          type="button"
+          size="icon"
+          variant={isListening ? 'destructive' : 'outline'}
+          onClick={toggleListening}
+          disabled={isLoading}
+          title={isListening ? 'Stop listening' : 'Voice input'}
+        >
+          {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+        </Button>
         <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
           <Send className="h-4 w-4" />
         </Button>
