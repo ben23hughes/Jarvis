@@ -14,13 +14,14 @@ function getPiScript(device: Device, baseUrl: string): string {
   return `#!/usr/bin/env python3
 """
 Jarvis Pi — runs on your Raspberry Pi to connect it to Jarvis.
-Install deps: pip install requests pyttsx3 SpeechRecognition pyaudio
+Install deps: pip install requests SpeechRecognition pyaudio mpg123
 """
 
 import time
-import json
 import subprocess
 import threading
+import tempfile
+import os
 import requests
 import speech_recognition as sr
 
@@ -34,7 +35,25 @@ headers = {"Authorization": f"Bearer {DEVICE_KEY}"}
 
 
 def speak(text: str):
-    """Speak text aloud using espeak (or pyttsx3 as alternative)."""
+    """Speak text aloud using ElevenLabs TTS via Jarvis server."""
+    try:
+        r = requests.post(
+            f"{BASE_URL}/api/tts",
+            headers={**headers, "Content-Type": "application/json"},
+            json={"text": text},
+            timeout=15,
+        )
+        if r.ok:
+            # Write audio to temp file and play with mpg123
+            with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+                f.write(r.content)
+                tmp_path = f.name
+            subprocess.run(["mpg123", "-q", tmp_path], check=False)
+            os.unlink(tmp_path)
+            return
+    except Exception as e:
+        print(f"[tts error] {e}")
+    # Fallback to espeak if ElevenLabs fails
     subprocess.run(["espeak", "-ven+f3", "-k5", "-s150", text], check=False)
 
 
@@ -282,7 +301,7 @@ export function DeviceManager({ initialDevices }: Props) {
 
               <div className="rounded-md border bg-muted p-3 space-y-1">
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">1 — Install dependencies on your Pi</p>
-                <code className="text-xs font-mono">pip install requests pyttsx3 SpeechRecognition pyaudio</code>
+                <code className="text-xs font-mono">pip install requests SpeechRecognition pyaudio && sudo apt-get install -y mpg123</code>
               </div>
 
               <div className="rounded-md border bg-muted p-3 space-y-1">
