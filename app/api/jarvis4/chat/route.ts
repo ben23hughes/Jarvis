@@ -66,10 +66,11 @@ export async function POST(request: Request) {
     { role: 'user', content: message },
   ]
 
+  const piSystem = systemPrompt + '\n\nYou are responding to a voice request from the user\'s Jarvis Pi device. Keep responses concise and conversational — they will be read aloud via text-to-speech.'
   let response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 512,
-    system: systemPrompt + '\n\nYou are responding to a voice request from the user\'s Jarvis Pi device. Keep responses concise and conversational — they will be read aloud via text-to-speech.',
+    system: [{ type: 'text', text: piSystem, cache_control: { type: 'ephemeral' } }],
     tools,
     messages,
   })
@@ -86,7 +87,7 @@ export async function POST(request: Request) {
     response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 512,
-      system: systemPrompt,
+      system: [{ type: 'text', text: piSystem, cache_control: { type: 'ephemeral' } }],
       tools,
       messages,
     })

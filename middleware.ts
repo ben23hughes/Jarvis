@@ -32,7 +32,8 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // Redirect unauthenticated users away from protected routes
-  if (!user && pathname.startsWith('/dashboard') || !user && pathname.startsWith('/chat') || !user && pathname.startsWith('/settings') || !user && pathname.startsWith('/contacts') || !user && pathname.startsWith('/analytics')) {
+  const protectedPaths = ['/dashboard', '/chat', '/settings', '/contacts', '/analytics', '/agent', '/jarvis4', '/goals', '/health', '/contacts']
+  if (!user && protectedPaths.some(p => pathname.startsWith(p))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -50,6 +51,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|mjs|js|css|ico)$).*)',
   ],
 }

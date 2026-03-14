@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Terminal, FolderOpen, Globe, Monitor, GitBranch,
   CheckCircle2, XCircle, Copy, Check, RefreshCw,
-  FileText, FolderSearch, Play, Search, MousePointer,
-  Camera, Keyboard, ChevronDown, ChevronUp,
+  FileText, FolderSearch, Play, Download,
+  ChevronDown, ChevronUp,
 } from 'lucide-react'
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -86,31 +86,44 @@ const CAPABILITIES = [
 const SETUP_STEPS = [
   {
     n: 1,
-    title: 'Get your API key',
-    body: 'Copy your personal agent key from the section below. This is how the agent authenticates with your Jarvis account.',
+    title: 'Open Terminal on your Mac',
+    body: 'Terminal is a built-in app that lets you run commands. To open it: press ⌘ Space (Command + Spacebar) to open Spotlight, type Terminal, then press Enter. A black or white window will appear — that\'s it.',
   },
   {
     n: 2,
-    title: 'Create agent/.env',
-    body: 'In the Jarvis project folder, create a file at agent/.env with your key and the server URL.',
-    code: (key: string) => `JARVIS_KEY=${key}\nJARVIS_URL=https://jarvis4.com`,
+    title: 'Check that Node.js is installed',
+    body: 'The agent runs on Node.js. Paste this command into Terminal and press Enter. If you see a version number (like v20.x.x) you\'re good. If you get an error, download Node.js from nodejs.org — click the big "LTS" button and install it like any other Mac app.',
+    code: () => `node --version`,
   },
   {
     n: 3,
-    title: 'Install browser support (optional)',
-    body: 'If you want browser control, install Playwright. Skip this if you only need file system and terminal access.',
-    code: () => `npm install playwright\nnpx playwright install chromium`,
+    title: 'Create a folder for the agent',
+    body: 'This creates a new folder called "jarvis-agent" in your home directory and opens it. Paste both lines into Terminal and press Enter.',
+    code: () => `mkdir -p ~/jarvis-agent\ncd ~/jarvis-agent`,
   },
   {
     n: 4,
-    title: 'Start the agent',
-    body: 'Open a terminal in your project directory and run the agent. Keep it running in the background.',
-    code: () => `node agent/index.mjs`,
+    title: 'Download the agent script',
+    body: 'This downloads the agent script into the folder you just created. Paste the command below and press Enter, or use the Download button.',
+    code: () => `curl -o jarvis-agent.mjs https://jarvis4.com/jarvis-agent.mjs`,
+    downloadAgent: true,
   },
   {
     n: 5,
+    title: 'Add your API key',
+    body: 'This creates a settings file with your personal key so the agent knows who you are. Copy the command below — it already has your key filled in — and paste it into Terminal.',
+    code: (key: string) => `printf 'JARVIS_KEY=${key}\\nJARVIS_URL=https://jarvis4.com' > .env`,
+  },
+  {
+    n: 6,
+    title: 'Start the agent',
+    body: 'Run this command to start the agent. You\'ll see "Jarvis Agent" printed in the terminal — that means it\'s working. Leave this window open while you use Jarvis. The green dot at the top of this page will turn on.',
+    code: () => `node jarvis-agent.mjs`,
+  },
+  {
+    n: 7,
     title: 'Start chatting',
-    body: 'The status indicator above will turn green. Go to Chat and start giving Jarvis tasks on your machine.',
+    body: 'Go to the Chat page and start asking Jarvis to do things on your computer — read files, run commands, browse the web, and more. Next time you want to use the agent, open Terminal and run: cd ~/jarvis-agent && node jarvis-agent.mjs',
   },
 ]
 
@@ -123,7 +136,7 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
   const [showKey, setShowKey] = useState(false)
   const [apiKey, setApiKey] = useState(initialKey)
   const [regenerating, setRegenerating] = useState(false)
-  const [expandedCapability, setExpandedCapability] = useState<string | null>('filesystem')
+  const [expandedCapability, setExpandedCapability] = useState<string | null>(null)
 
   const pollStatus = useCallback(async () => {
     const res = await fetch('/api/agent/status')
@@ -278,19 +291,31 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
                 <p className="text-sm text-muted-foreground">{step.body}</p>
 
                 {step.code && (
-                  <div className="relative">
-                    <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
-                      {step.code(apiKey)}
-                    </pre>
-                    <button
-                      onClick={() => copy(step.code!(apiKey), `step-${step.n}`)}
-                      className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
-                      title="Copy"
-                    >
-                      {copied[`step-${step.n}`]
-                        ? <Check className="h-3.5 w-3.5 text-emerald-400" />
-                        : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
-                    </button>
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
+                        {step.code(apiKey)}
+                      </pre>
+                      <button
+                        onClick={() => copy(step.code!(apiKey), `step-${step.n}`)}
+                        className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
+                        title="Copy"
+                      >
+                        {copied[`step-${step.n}`]
+                          ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                          : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
+                      </button>
+                    </div>
+                    {'downloadAgent' in step && step.downloadAgent && (
+                      <a
+                        href="/jarvis-agent.mjs"
+                        download="jarvis-agent.mjs"
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-md px-3 py-1.5 transition-colors"
+                      >
+                        <Download className="h-3 w-3" />
+                        Download jarvis-agent.mjs
+                      </a>
+                    )}
                   </div>
                 )}
               </div>
