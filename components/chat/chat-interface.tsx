@@ -25,7 +25,8 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   const recognitionRef = useRef<any>(null)
 
   const toggleListening = useCallback(() => {
-    const SpeechRecognition = window.SpeechRecognition || (window as unknown as { webkitSpeechRecognition: typeof window.SpeechRecognition }).webkitSpeechRecognition
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     if (!SpeechRecognition) {
       alert('Voice input is not supported in this browser. Try Chrome or Edge.')
       return
