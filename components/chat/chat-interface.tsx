@@ -43,7 +43,7 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
     recognition.interimResults = false
     recognition.lang = 'en-US'
 
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
       setInput((prev) => prev ? `${prev} ${transcript}` : transcript)
       setIsListening(false)
