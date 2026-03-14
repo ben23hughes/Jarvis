@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Send } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageBubble } from './message-bubble'
 import type { ChatMessage } from '@/types/chat'
@@ -10,33 +11,33 @@ interface ChatInterfaceProps {
   userName: string
 }
 
-function createGreeting(name: string): ChatMessage {
-  return {
-    id: 'greeting',
-    role: 'assistant',
-    content: `Hey ${name}! 👋 How can I help you today?`,
-    createdAt: new Date(),
-  }
-}
-
 export function ChatInterface({ userName }: ChatInterfaceProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([createGreeting(userName)])
+  const fullGreeting = `Hi ${userName}, how can I help today?`
+  const [greetingText, setGreetingText] = useState('')
+  const [greetingDone, setGreetingDone] = useState(false)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  // Typewriter effect for greeting
+  useEffect(() => {
+    let i = 0
+    const interval = setInterval(() => {
+      i++
+      setGreetingText(fullGreeting.slice(0, i))
+      if (i >= fullGreeting.length) {
+        clearInterval(interval)
+        setGreetingDone(true)
+      }
+    }, 35)
+    return () => clearInterval(interval)
+  }, [fullGreeting])
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current
-    if (!textarea) return
-    textarea.style.height = 'auto'
-    textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px'
-  }, [input])
+  }, [messages, greetingText])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -63,16 +64,16 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
 
     setMessages((prev) => [...prev, assistantMessage])
 
-    // Only send non-greeting messages to the API
-    const apiMessages = [...messages, userMessage]
-      .filter((m) => m.id !== 'greeting')
-      .map((m) => ({ role: m.role, content: m.content }))
-
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({
+          messages: [...messages, userMessage].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        }),
       })
 
       if (!response.body) throw new Error('No response body')
@@ -96,7 +97,10 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
               const updated = [...prev]
               const last = updated[updated.length - 1]
               if (last.role === 'assistant') {
-                updated[updated.length - 1] = { ...last, content: last.content + data.text }
+                updated[updated.length - 1] = {
+                  ...last,
+                  content: last.content + data.text,
+                }
               }
               return updated
             })
@@ -107,7 +111,10 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
               if (last.role === 'assistant') {
                 updated[updated.length - 1] = {
                   ...last,
-                  toolCalls: [...(last.toolCalls ?? []), { id: data.id, name: data.name, input: data.input }],
+                  toolCalls: [
+                    ...(last.toolCalls ?? []),
+                    { id: data.id, name: data.name, input: data.input },
+                  ],
                 }
               }
               return updated
@@ -155,61 +162,48 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      {/* Header — feels like a contact/text thread */}
-      <div className="flex items-center gap-3 border-b bg-card px-4 py-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-          J
-        </div>
-        <div>
-          <p className="text-sm font-semibold leading-none">Jarvis</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">Your AI assistant</p>
-        </div>
-      </div>
+    <div className="flex h-full flex-col">
+      <ScrollArea className="flex-1 pr-4">
+        <div className="space-y-4 py-4">
+          {/* Typewriter greeting */}
+          <div className="flex justify-start">
+            <div className="max-w-[80%] rounded-2xl bg-muted px-4 py-2.5 text-sm">
+              <p className="whitespace-pre-wrap">
+                {greetingText}
+                {!greetingDone && (
+                  <span className="ml-0.5 inline-block h-3.5 w-0.5 animate-pulse bg-foreground align-middle" />
+                )}
+              </p>
+            </div>
+          </div>
 
-      {/* Message thread */}
-      <ScrollArea className="flex-1 px-4">
-        <div className="space-y-2 py-4">
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}
-          {isLoading && messages[messages.length - 1]?.content === '' && messages[messages.length - 1]?.toolCalls?.length === 0 && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl bg-muted px-4 py-2.5">
-                <span className="flex gap-1 text-sm text-muted-foreground">
-                  <span className="animate-bounce" style={{ animationDelay: '0ms' }}>·</span>
-                  <span className="animate-bounce" style={{ animationDelay: '150ms' }}>·</span>
-                  <span className="animate-bounce" style={{ animationDelay: '300ms' }}>·</span>
-                </span>
-              </div>
+          {isLoading && messages[messages.length - 1]?.content === '' && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span className="animate-pulse">Jarvis is thinking...</span>
             </div>
           )}
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
 
-      {/* Input bar — iMessage style */}
-      <div className="border-t bg-card px-4 py-3">
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Message Jarvis…"
-            className="max-h-[120px] flex-1 resize-none rounded-2xl border bg-background px-4 py-2.5 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring"
-            rows={1}
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity disabled:opacity-40"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </form>
-      </div>
+      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Message Jarvis... (Enter to send, Shift+Enter for new line)"
+          className="min-h-[52px] flex-1 resize-none rounded-md border bg-background px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          rows={1}
+          disabled={isLoading}
+        />
+        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+          <Send className="h-4 w-4" />
+        </Button>
+      </form>
     </div>
   )
 }

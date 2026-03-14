@@ -105,14 +105,14 @@ const SETUP_STEPS = [
     n: 4,
     title: 'Download the agent script',
     body: 'This downloads the agent script into the folder you just created. Paste the command below and press Enter, or use the Download button.',
-    code: () => `curl -o jarvis-agent.mjs https://jarvis4.com/jarvis-agent.mjs`,
+    code: () => `curl -o jarvis-agent.mjs https://www.jarvis4.com/jarvis-agent.mjs`,
     downloadAgent: true,
   },
   {
     n: 5,
     title: 'Add your API key',
     body: 'This creates a settings file with your personal key so the agent knows who you are. Copy the command below — it already has your key filled in — and paste it into Terminal.',
-    code: (key: string) => `printf 'JARVIS_KEY=${key}\\nJARVIS_URL=https://jarvis4.com' > .env`,
+    code: (key: string) => `printf 'JARVIS_KEY=${key}\\nJARVIS_URL=https://www.jarvis4.com' > .env`,
   },
   {
     n: 6,
@@ -168,7 +168,7 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
     setRegenerating(false)
   }
 
-  const envContent = `JARVIS_KEY=${apiKey}\nJARVIS_URL=https://jarvis4.com`
+  const envContent = `JARVIS_KEY=${apiKey}\nJARVIS_URL=https://www.jarvis4.com`
 
   return (
     <div className="max-w-3xl space-y-10 pb-16">

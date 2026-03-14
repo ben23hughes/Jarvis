@@ -14,7 +14,11 @@ export default async function ChatPage() {
   const firstName = profile?.full_name?.split(' ')[0] ?? profile?.email?.split('@')[0] ?? 'there'
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col -m-6">
+    <div className="flex h-[calc(100vh-8rem)] flex-col">
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold">Chat</h1>
+        <p className="text-sm text-muted-foreground">Ask Jarvis about your calendar, emails, tasks, and more</p>
+      </div>
       <ChatInterface userName={firstName} />
     </div>
   )

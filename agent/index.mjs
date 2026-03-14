@@ -27,7 +27,7 @@ if (existsSync(envPath)) {
 }
 
 const JARVIS_KEY = process.env.JARVIS_KEY
-const JARVIS_URL = (process.env.JARVIS_URL ?? 'https://jarvis4.com').replace(/\/$/, '')
+const JARVIS_URL = (process.env.JARVIS_URL ?? 'https://www.jarvis4.com').replace(/\/$/, '')
 const POLL_INTERVAL = 1500 // ms
 const HEARTBEAT_INTERVAL = 5000 // ms
 
