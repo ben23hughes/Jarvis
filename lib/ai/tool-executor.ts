@@ -16,7 +16,7 @@ import { listContacts, createContact, updateContact } from '@/lib/contacts'
 import { saveMemory, listMemories } from '@/lib/memories'
 import { createReminder, listReminders } from '@/lib/reminders'
 import { createSchedule, listSchedules, deleteSchedule, updateSchedule } from '@/lib/schedules'
-import { sendSmsToUser } from '@/lib/twilio'
+import { sendSmsToUser, sendSmsToContact } from '@/lib/twilio'
 import { webSearch } from '@/lib/tavily'
 import { listGoals, createGoal, updateGoal } from '@/lib/goals'
 import type { GoalCategory, GoalStatus } from '@/lib/goals'
@@ -391,6 +391,8 @@ export async function executeTool(
     // SMS
     case 'send_sms':
       return sendSmsToUser(userId, input.message as string)
+    case 'send_sms_to_contact':
+      return sendSmsToContact(userId, input.contact_name as string, input.message as string)
     case 'save_phone_number': {
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
       const { error: phoneErr } = await sb.from('profiles').update({ phone_number: input.phone_number as string }).eq('id', userId)

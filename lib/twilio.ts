@@ -36,3 +36,22 @@ export async function sendSmsToUser(userId: string, body: string): Promise<void>
   if (!phone) throw new Error('User has no phone number configured')
   await sendSms(phone, body)
 }
+
+export async function sendSmsToContact(userId: string, contactName: string, body: string): Promise<{ sent_to: string; phone: string }> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+  const { data } = await supabase
+    .from('contacts')
+    .select('first_name, last_name, phone')
+    .eq('user_id', userId)
+    .or(`first_name.ilike.%${contactName}%,last_name.ilike.%${contactName}%`)
+    .not('phone', 'is', null)
+    .limit(1)
+    .single()
+
+  if (!data) throw new Error(`No contact named "${contactName}" with a phone number found`)
+  await sendSms(data.phone!, body)
+  return { sent_to: `${data.first_name} ${data.last_name ?? ''}`.trim(), phone: data.phone! }
+}

@@ -1087,6 +1087,18 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: 'send_sms_to_contact',
+    description: "Send an SMS text message to one of the user's contacts by name",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        contact_name: { type: 'string', description: 'Name of the contact to text' },
+        message: { type: 'string', description: 'The message to send' },
+      },
+      required: ['contact_name', 'message'],
+    },
+  },
+  {
     name: 'save_phone_number',
     description: "Save the user's phone number to their profile so Jarvis can send SMS notifications and reminders",
     input_schema: {
