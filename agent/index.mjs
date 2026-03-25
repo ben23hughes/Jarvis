@@ -162,6 +162,75 @@ function gitStatus({ cwd }) {
   }
 }
 
+// ── Clipboard ─────────────────────────────────────────────────────────────────
+
+function getClipboard() {
+  try {
+    if (process.platform === 'darwin') {
+      const content = execSync('pbpaste', { timeout: 5000 }).toString()
+      return { content: content.trimEnd(), length: content.trimEnd().length }
+    } else if (process.platform === 'win32') {
+      const content = execSync('powershell -command "Get-Clipboard"', { timeout: 5000 }).toString()
+      return { content: content.trimEnd(), length: content.trimEnd().length }
+    } else {
+      try {
+        const content = execSync('xclip -selection clipboard -o', { timeout: 5000 }).toString()
+        return { content: content.trimEnd(), length: content.trimEnd().length }
+      } catch {
+        const content = execSync('xsel --clipboard --output', { timeout: 5000 }).toString()
+        return { content: content.trimEnd(), length: content.trimEnd().length }
+      }
+    }
+  } catch (err) {
+    throw new Error(`Could not read clipboard: ${err.message}`)
+  }
+}
+
+function setClipboard({ content }) {
+  try {
+    if (process.platform === 'darwin') {
+      spawnSync('pbcopy', [], { input: content, timeout: 5000 })
+    } else if (process.platform === 'win32') {
+      const escaped = content.replace(/'/g, "''")
+      execSync(`powershell -command "Set-Clipboard -Value '${escaped}'"`, { timeout: 5000 })
+    } else {
+      try {
+        spawnSync('xclip', ['-selection', 'clipboard'], { input: content, timeout: 5000 })
+      } catch {
+        spawnSync('xsel', ['--clipboard', '--input'], { input: content, timeout: 5000 })
+      }
+    }
+    return { set: true, length: content.length }
+  } catch (err) {
+    throw new Error(`Could not write clipboard: ${err.message}`)
+  }
+}
+
+// ── Native notification ───────────────────────────────────────────────────────
+
+async function notify({ message, subtitle = '' }) {
+  notifyOverlay('notification', message)
+  try {
+    if (process.platform === 'darwin') {
+      const msg = message.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+      const sub = subtitle ? ` subtitle "${subtitle.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : ''
+      execSync(`osascript -e 'display notification "${msg}" with title "Jarvis"${sub}'`, { timeout: 5000 })
+    } else if (process.platform === 'win32') {
+      const ps = [
+        'Add-Type -AssemblyName System.Windows.Forms',
+        '$n = New-Object System.Windows.Forms.NotifyIcon',
+        '$n.Icon = [System.Drawing.SystemIcons]::Information',
+        '$n.Visible = $true',
+        `$n.ShowBalloonTip(5000, 'Jarvis', '${message.replace(/'/g, "''")}', 'Info')`,
+        'Start-Sleep 6',
+        '$n.Visible = $false; $n.Dispose()',
+      ].join('; ')
+      spawn('powershell', ['-command', ps], { detached: true, stdio: 'ignore' }).unref()
+    }
+  } catch { /* overlay-only fallback */ }
+  return { notified: true, message }
+}
+
 // ── Browser control (Playwright) ───────────────────────────────────────────────
 
 let _browser = null
@@ -254,6 +323,19 @@ async function browserBack() {
   return { url: page.url(), title: await page.title() }
 }
 
+async function browserScroll({ direction = 'down', amount = 500, selector }) {
+  const page = await getPage()
+  const px = direction === 'up' ? -Math.abs(amount) : Math.abs(amount)
+  if (selector) {
+    await page.locator(selector).first().evaluate((el, y) => el.scrollBy(0, y), px)
+  } else {
+    await page.evaluate((y) => window.scrollBy({ top: y, behavior: 'smooth' }), px)
+  }
+  await page.waitForTimeout(400)
+  const scrollY = await page.evaluate(() => window.scrollY)
+  return { scrolled: direction, amount, scroll_position: scrollY }
+}
+
 async function browserClose() {
   if (_browser) {
     await _browser.close()
@@ -313,6 +395,9 @@ async function executeTask(tool, input) {
     case 'run_command':       return runCommand(input)
     case 'search_files':      return searchFiles(input)
     case 'git_status':        return gitStatus(input)
+    case 'get_clipboard':    return getClipboard()
+    case 'set_clipboard':    return setClipboard(input)
+    case 'notify':           return notify(input)
     // Browser
     case 'browser_navigate':  return browserNavigate(input)
     case 'browser_screenshot':return browserScreenshot(input)
@@ -321,6 +406,7 @@ async function executeTask(tool, input) {
     case 'browser_get_text':  return browserGetText(input)
     case 'browser_evaluate':  return browserEvaluate(input)
     case 'browser_back':      return browserBack()
+    case 'browser_scroll':    return browserScroll(input)
     case 'browser_close':     return browserClose()
     // Screen
     case 'screen_screenshot': return screenScreenshot()

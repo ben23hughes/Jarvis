@@ -88,10 +88,13 @@ function startStdinReader() {
         const { event, tool } = JSON.parse(trimmed)
         if (!event) continue
 
-        // Auto-clear errors after 3s
+        // Auto-clear errors after 3s, notifications after 5s
         if (event === 'error') {
           clearTimeout(errorTimer)
           errorTimer = setTimeout(() => broadcast('idle', null), 3000)
+        } else if (event === 'notification') {
+          clearTimeout(errorTimer)
+          errorTimer = setTimeout(() => broadcast('idle', null), 5000)
         } else {
           clearTimeout(errorTimer)
         }

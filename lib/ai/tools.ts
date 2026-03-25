@@ -319,14 +319,15 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
   // ── Memory ─────────────────────────────────────────────────────
   {
     name: 'remember',
-    description: 'Save an important fact or preference about the user for future conversations',
+    description: 'Save something meaningful about the user for future conversations. Call this proactively whenever the user mentions a person, shares a personal fact, reveals a preference, or shows a recurring pattern.',
     input_schema: {
       type: 'object' as const,
       properties: {
-        content: { type: 'string', description: 'The fact or preference to remember' },
+        content: { type: 'string', description: 'One clear, specific sentence to remember' },
         category: {
           type: 'string',
-          description: 'Category: preference, fact, person, instruction, or general',
+          enum: ['people', 'facts', 'preferences', 'patterns'],
+          description: 'people = someone the user mentioned; facts = stable life context; preferences = how they like things done; patterns = recurring behaviors',
         },
       },
       required: ['content'],
@@ -1282,6 +1283,52 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
       required: ['text'],
     },
   },
+
+  // ── Clipboard ──────────────────────────────────────────────────
+  {
+    name: 'get_clipboard',
+    description: "Read the current contents of the user's clipboard. Use when the user says 'use what I copied', 'take this', or pastes something they want processed. Requires the Jarvis local agent.",
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name: 'set_clipboard',
+    description: "Write text to the user's clipboard so they can paste it anywhere. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        content: { type: 'string', description: 'Text to copy to clipboard' },
+      },
+      required: ['content'],
+    },
+  },
+
+  // ── Notifications ──────────────────────────────────────────────
+  {
+    name: 'notify',
+    description: "Send a native desktop notification. Use proactively when a long-running task (tests, builds, downloads) finishes so the user knows without watching the terminal. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        message: { type: 'string', description: 'Notification body text' },
+        subtitle: { type: 'string', description: 'Optional subtitle line (macOS only)' },
+      },
+      required: ['message'],
+    },
+  },
+
+  // ── Browser scroll ─────────────────────────────────────────────
+  {
+    name: 'browser_scroll',
+    description: "Scroll the browser page or a specific element. Use when content is below the fold or you need to load more items. Requires the Jarvis local agent.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        direction: { type: 'string', enum: ['down', 'up'], description: 'Scroll direction (default: down)' },
+        amount: { type: 'number', description: 'Pixels to scroll (default: 500)' },
+        selector: { type: 'string', description: 'CSS selector of scrollable element (omit to scroll the page)' },
+      },
+    },
+  },
 ]
 
 const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
@@ -1403,6 +1450,10 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   screen_screenshot: [],
   screen_click: [],
   screen_type: [],
+  get_clipboard: [],
+  set_clipboard: [],
+  notify: [],
+  browser_scroll: [],
 }
 
 export function getToolsForConnectedProviders(

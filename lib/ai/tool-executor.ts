@@ -486,6 +486,11 @@ export async function executeTool(
     case 'screen_screenshot':
     case 'screen_click':
     case 'screen_type':
+    // Clipboard / notifications / browser scroll
+    case 'get_clipboard':
+    case 'set_clipboard':
+    case 'notify':
+    case 'browser_scroll':
       return dispatchAgentTask(userId, toolName, input)
 
     default:

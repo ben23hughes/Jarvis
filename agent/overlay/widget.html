@@ -80,17 +80,18 @@
   const sub = document.getElementById('sub')
 
   const COLORS = {
-    executing: '#22c55e',
-    thinking:  '#3b82f6',
-    error:     '#ef4444',
-    idle:      '#6b7280',
-    done:      '#6b7280',
+    executing:    '#22c55e',
+    thinking:     '#3b82f6',
+    error:        '#ef4444',
+    notification: '#a855f7',
+    idle:         '#6b7280',
+    done:         '#6b7280',
   }
 
   window.jarvis.onStatus(({ event, tool }) => {
     const color = COLORS[event] ?? COLORS.idle
     dot.style.background = color
-    dot.className = 'dot' + (['executing', 'thinking'].includes(event) ? ' pulse' : '')
+    dot.className = 'dot' + (['executing', 'thinking', 'notification'].includes(event) ? ' pulse' : '')
 
     if (event === 'executing') {
       sub.textContent = (tool ?? 'running').replace(/_/g, ' ')
@@ -98,6 +99,8 @@
       sub.textContent = 'thinking\u2026'
     } else if (event === 'error') {
       sub.textContent = 'error'
+    } else if (event === 'notification') {
+      sub.textContent = tool ?? 'done'
     } else {
       sub.textContent = 'idle'
     }
