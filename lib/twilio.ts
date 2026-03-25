@@ -10,11 +10,11 @@ export async function sendSms(to: string, body: string): Promise<void> {
     throw new Error('Twilio is not configured')
   }
   const client = getTwilioClient()
-  await client.messages.create({
-    body,
-    from: process.env.TWILIO_PHONE_NUMBER!,
-    to,
-  })
+  if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
+    await client.messages.create({ body, to, messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID })
+  } else {
+    await client.messages.create({ body, to, from: process.env.TWILIO_PHONE_NUMBER! })
+  }
 }
 
 export async function getUserPhoneNumber(userId: string): Promise<string | null> {
