@@ -1086,6 +1086,17 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
       required: ['message'],
     },
   },
+  {
+    name: 'save_phone_number',
+    description: "Save the user's phone number to their profile so Jarvis can send SMS notifications and reminders",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        phone_number: { type: 'string', description: 'Phone number in E.164 format e.g. +12125551234' },
+      },
+      required: ['phone_number'],
+    },
+  },
 
   // ── Web Search ─────────────────────────────────────────────────
   {

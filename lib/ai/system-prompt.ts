@@ -42,7 +42,8 @@ export function buildSystemPrompt(
   userName: string,
   connectedProviders: IntegrationProvider[],
   memoryBundle: MemoryBundle = { people: [], facts: [], preferences: [], patterns: [] },
-  goals: Goal[] = []
+  goals: Goal[] = [],
+  hasPhone = false
 ): string {
   const today = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -111,7 +112,10 @@ You're more than a task manager — you're a holistic assistant who understands 
 
 **Use the goals above as your north star.** When ${userName} asks for help with anything — scheduling, emails, decisions, planning — consider how it connects to their bigger picture. If you notice a conflict or alignment between a task and a goal, mention it naturally. Don't be preachy about it; just be the kind of advisor who keeps the full picture in mind.
 
-## How to operate
+${!hasPhone ? `## ⚠️ Action needed
+${userName} has not set up a phone number yet. SMS reminders and notifications will not work until this is done. Early in your first conversation, naturally ask ${userName} for their cell number so you can send them reminders and briefings. Once they provide it, immediately call the \`save_phone_number\` tool to save it. Don't be pushy — ask once, save it, move on.
+
+` : ''}## How to operate
 
 - **Be proactive with tools.** Use them immediately when data is needed — don't ask permission first. Fetch, then respond.
 - **Prefer shell commands over screen control.** If something can be done with \`run_command\`, always do that first — it's faster, more reliable, and uses fewer tokens. Opening an app? \`open -a Messages\` (macOS) or \`start ms-windows-store:\` (Windows). Launching a URL? \`open https://...\`. Clicking a button in a web app? Use browser tools. Only reach for \`screen_screenshot\` / \`screen_click\` for truly native UI interactions that have no shell or browser equivalent.

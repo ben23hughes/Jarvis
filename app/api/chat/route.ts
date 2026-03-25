@@ -23,18 +23,19 @@ export async function POST(request: Request) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email')
+    .select('full_name, email, phone_number')
     .eq('id', user.id)
     .single()
 
   const userName = profile?.full_name?.split(' ')[0] ?? profile?.email?.split('@')[0] ?? 'there'
+  const hasPhone = !!profile?.phone_number
   const [connectedProviders, memoryBundle, goals] = await Promise.all([
     getConnectedProviders(user.id),
     loadMemoryBundle(user.id),
     listGoals(user.id, undefined, 'active'),
   ])
   const tools = getToolsForConnectedProviders(connectedProviders)
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memoryBundle, goals)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memoryBundle, goals, hasPhone)
 
   const encoder = new TextEncoder()
 

@@ -391,6 +391,12 @@ export async function executeTool(
     // SMS
     case 'send_sms':
       return sendSmsToUser(userId, input.message as string)
+    case 'save_phone_number': {
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      const { error: phoneErr } = await sb.from('profiles').update({ phone_number: input.phone_number as string }).eq('id', userId)
+      if (phoneErr) throw new Error('Failed to save phone number')
+      return { ok: true, phone_number: input.phone_number }
+    }
 
     // Web search
     case 'web_search':
