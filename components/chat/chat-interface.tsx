@@ -7,6 +7,17 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageBubble } from './message-bubble'
 import type { ChatMessage } from '@/types/chat'
 
+const SUGGESTIONS = [
+  { emoji: '📅', label: "Today's schedule",     prompt: "What's on my calendar today?" },
+  { emoji: '📧', label: 'Catch up on email',    prompt: 'Catch me up on my unread emails' },
+  { emoji: '💬', label: 'Check Slack',           prompt: "What's new in my Slack?" },
+  { emoji: '🎯', label: 'Goal progress',         prompt: 'How am I tracking on my goals?' },
+  { emoji: '📋', label: 'Open Linear issues',    prompt: 'What are my open Linear issues?' },
+  { emoji: '🌤️', label: "Weather today",         prompt: "What's the weather like today?" },
+  { emoji: '💰', label: 'Portfolio snapshot',    prompt: 'Give me a quick snapshot of my portfolio' },
+  { emoji: '🌅', label: 'Morning briefing',      prompt: 'Give me my morning briefing' },
+]
+
 interface ChatInterfaceProps {
   userName: string
 }
@@ -97,14 +108,13 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, greetingText])
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  async function sendMessage(text: string) {
+    if (!text.trim() || isLoading) return
 
     const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
-      content: input.trim(),
+      content: text.trim(),
       createdAt: new Date(),
     }
 
@@ -215,9 +225,16 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
-      handleSubmit(e)
+      sendMessage(input)
     }
   }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    sendMessage(input)
+  }
+
+  const showSuggestions = messages.length === 0 && greetingDone
 
   return (
     <div className="flex h-full flex-col">
@@ -247,7 +264,25 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
         </div>
       </ScrollArea>
 
-      <form onSubmit={handleSubmit} className="mt-4 flex gap-2">
+      {/* Suggestion chips — only on fresh conversation */}
+      {showSuggestions && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {SUGGESTIONS.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              onClick={() => sendMessage(s.prompt)}
+              disabled={isLoading}
+              className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted hover:text-foreground disabled:opacity-40"
+            >
+              <span>{s.emoji}</span>
+              <span>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="flex gap-2">
         <textarea
           ref={textareaRef}
           value={input}
