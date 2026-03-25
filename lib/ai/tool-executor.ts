@@ -395,9 +395,12 @@ export async function executeTool(
       return sendSmsToContact(userId, input.contact_name as string, input.message as string)
     case 'save_phone_number': {
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-      const { error: phoneErr } = await sb.from('profiles').update({ phone_number: input.phone_number as string }).eq('id', userId)
+      // Normalize to E.164 — strip non-digits then prepend +1 for US numbers
+      const digits = (input.phone_number as string).replace(/\D/g, '')
+      const normalized = digits.startsWith('1') ? `+${digits}` : `+1${digits}`
+      const { error: phoneErr } = await sb.from('profiles').update({ phone_number: normalized }).eq('id', userId)
       if (phoneErr) throw new Error('Failed to save phone number')
-      return { ok: true, phone_number: input.phone_number }
+      return { ok: true, phone_number: normalized }
     }
 
     // Web search
