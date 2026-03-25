@@ -392,35 +392,39 @@ async function runLoop() {
   }
 }
 
-// ── Overlay (macOS screen widget + edge glow) ─────────────────────────────────
+// ── Overlay (cross-platform screen widget + edge glow via Electron) ───────────
 
-const OVERLAY_SRC = new URL('overlay.swift', import.meta.url).pathname
-const OVERLAY_BIN = new URL('overlay-bin', import.meta.url).pathname
+const OVERLAY_DIR = new URL('overlay/', import.meta.url).pathname
 
 let overlayProcess = null
 
-function buildOverlay() {
-  if (existsSync(OVERLAY_BIN)) return true
-  const swiftc = spawnSync('which', ['swiftc'], { encoding: 'utf8' })
-  if (swiftc.status !== 0) {
-    console.log('ℹ️   swiftc not found — overlay disabled (install Xcode Command Line Tools to enable)')
-    return false
+function getElectronBin() {
+  const base = join(OVERLAY_DIR, 'node_modules', '.bin', 'electron')
+  // Windows npm creates electron.cmd
+  if (process.platform === 'win32') {
+    const cmd = base + '.cmd'
+    if (existsSync(cmd)) return { bin: cmd, shell: true }
   }
-  console.log('🎨  Building Jarvis overlay (first run only)…')
-  const result = spawnSync('swiftc', [OVERLAY_SRC, '-o', OVERLAY_BIN], { stdio: 'inherit', timeout: 60_000 })
-  if (result.status !== 0) {
-    console.warn('⚠️  Overlay build failed — continuing without it')
-    return false
-  }
-  console.log('✓  Overlay built')
-  return true
+  if (existsSync(base)) return { bin: base, shell: false }
+  return null
 }
 
 function spawnOverlay() {
-  if (!buildOverlay()) return
-  overlayProcess = spawn(OVERLAY_BIN, [], { stdio: ['pipe', 'inherit', 'inherit'] })
+  const overlayPkg = join(OVERLAY_DIR, 'package.json')
+  if (!existsSync(overlayPkg)) return  // overlay dir missing, skip
+
+  const electron = getElectronBin()
+  if (!electron) {
+    console.log('ℹ️   Run "npm install" in agent/overlay/ to enable the visual overlay')
+    return
+  }
+
+  overlayProcess = spawn(electron.bin, [OVERLAY_DIR], {
+    stdio: ['pipe', 'inherit', 'inherit'],
+    shell: electron.shell,
+  })
   overlayProcess.on('exit', () => { overlayProcess = null })
-  console.log('🎨  Overlay running\n')
+  console.log('🎨  Overlay running')
 }
 
 function notifyOverlay(event, tool = null) {

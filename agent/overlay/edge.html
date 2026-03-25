@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; }
+
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    background: transparent;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .edge {
+    position: fixed;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+  }
+
+  .edge.active {
+    animation: glow 1.5s ease-in-out infinite;
+  }
+
+  @keyframes glow {
+    0%, 100% { opacity: 0.35; }
+    50%       { opacity: 0.85; }
+  }
+
+  #top    { top: 0;    left: 0; right: 0;  height: 64px; }
+  #bottom { bottom: 0; left: 0; right: 0;  height: 64px; }
+  #left   { top: 0; bottom: 0; left: 0;    width: 64px;  }
+  #right  { top: 0; bottom: 0; right: 0;   width: 64px;  }
+</style>
+</head>
+<body>
+  <div class="edge" id="top"></div>
+  <div class="edge" id="bottom"></div>
+  <div class="edge" id="left"></div>
+  <div class="edge" id="right"></div>
+
+<script>
+  const EDGES = {
+    top:    document.getElementById('top'),
+    bottom: document.getElementById('bottom'),
+    left:   document.getElementById('left'),
+    right:  document.getElementById('right'),
+  }
+
+  const GRADIENTS = {
+    top:    c => `linear-gradient(to bottom, ${c}, transparent)`,
+    bottom: c => `linear-gradient(to top,    ${c}, transparent)`,
+    left:   c => `linear-gradient(to right,  ${c}, transparent)`,
+    right:  c => `linear-gradient(to left,   ${c}, transparent)`,
+  }
+
+  const COLORS = {
+    executing: 'rgba(34,  197, 94,  0.85)',
+    thinking:  'rgba(59,  130, 246, 0.85)',
+    error:     'rgba(239, 68,  68,  0.85)',
+  }
+
+  function setColor(color) {
+    for (const [id, el] of Object.entries(EDGES)) {
+      el.style.background = GRADIENTS[id](color)
+    }
+  }
+
+  function setActive(active) {
+    for (const el of Object.values(EDGES)) {
+      el.classList.toggle('active', active)
+    }
+  }
+
+  window.jarvis.onStatus(({ event }) => {
+    const color = COLORS[event]
+    if (color) {
+      setColor(color)
+      setActive(true)
+    } else {
+      setActive(false)
+    }
+  })
+</script>
+</body>
+</html>
