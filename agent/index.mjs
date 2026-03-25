@@ -13,11 +13,12 @@
 
 import { execSync, spawnSync, spawn } from 'child_process'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs'
-import { join, dirname, resolve } from 'path'
+import { join, dirname, resolve, relative, sep } from 'path'
+import { fileURLToPath } from 'url'
 import { tmpdir } from 'os'
 
 // Load .env from agent/ directory if present
-const envPath = new URL('.env', import.meta.url).pathname
+const envPath = fileURLToPath(new URL('.env', import.meta.url))
 if (existsSync(envPath)) {
   const lines = readFileSync(envPath, 'utf-8').split('\n')
   for (const line of lines) {
@@ -79,7 +80,7 @@ function listFiles({ directory = '.', pattern }) {
     for (const entry of entries) {
       if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
       const fullPath = join(dir, entry.name)
-      const rel = fullPath.replace(abs + '/', '')
+      const rel = relative(abs, fullPath)
       if (entry.isDirectory()) {
         results.push({ path: rel, type: 'dir' })
         results.push(...walk(fullPath, depth + 1))
@@ -123,28 +124,48 @@ function runCommand({ command, cwd }) {
 
 function searchFiles({ query, directory = '.', file_pattern }) {
   const abs = resolve(directory)
-  const grepPattern = file_pattern ? `--include="${file_pattern}"` : ''
-  try {
-    const output = execSync(
-      `grep -rn ${grepPattern} "${query}" "${abs}" --max-count=5 -l`,
-      { timeout: 10_000 }
-    ).toString()
-    const files = output.trim().split('\n').filter(Boolean)
 
-    const results = files.slice(0, MAX_SEARCH_FILES).map((f) => {
+  // Pure Node.js recursive search — works on Windows and macOS
+  function walkSearch(dir, depth = 0) {
+    if (depth > 5) return []
+    let entries
+    try { entries = readdirSync(dir, { withFileTypes: true }) } catch { return [] }
+    const hits = []
+    for (const entry of entries) {
+      if (entry.name.startsWith('.') || entry.name === 'node_modules') continue
+      const full = join(dir, entry.name)
+      if (entry.isDirectory()) {
+        hits.push(...walkSearch(full, depth + 1))
+      } else {
+        if (file_pattern) {
+          // Simple glob: support *.ext or **/something patterns
+          const pat = file_pattern.replace(/\*\*\//g, '').replace(/\*/g, '.*')
+          if (!new RegExp(pat + '$').test(entry.name)) continue
+        }
+        hits.push(full)
+      }
+      if (hits.length >= MAX_SEARCH_FILES * 20) break // cap walking
+    }
+    return hits
+  }
+
+  try {
+    const allFiles = walkSearch(abs)
+    const matchingFiles = []
+    for (const f of allFiles) {
+      if (matchingFiles.length >= MAX_SEARCH_FILES) break
       try {
-        const lines = readFileSync(f, 'utf-8').split('\n')
+        const text = readFileSync(f, 'utf-8')
+        if (!text.includes(query)) continue
+        const lines = text.split('\n')
         const matches = lines
           .map((l, i) => ({ line: i + 1, text: l }))
           .filter((l) => l.text.includes(query))
           .slice(0, MAX_SEARCH_MATCHES)
-        return { file: f.replace(abs + '/', ''), matches }
-      } catch {
-        return { file: f, matches: [] }
-      }
-    })
-
-    return { query, results, total_files: files.length }
+        matchingFiles.push({ file: relative(abs, f), matches })
+      } catch { /* skip unreadable files */ }
+    }
+    return { query, results: matchingFiles, total_files: matchingFiles.length }
   } catch {
     return { query, results: [] }
   }
@@ -480,7 +501,7 @@ async function runLoop() {
 
 // ── Overlay (cross-platform screen widget + edge glow via Electron) ───────────
 
-const OVERLAY_DIR = new URL('overlay/', import.meta.url).pathname
+const OVERLAY_DIR = fileURLToPath(new URL('overlay/', import.meta.url))
 const OVERLAY_FILES = ['package.json', 'main.js', 'preload.js', 'widget.html', 'edge.html']
 
 let overlayProcess = null
