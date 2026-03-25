@@ -1127,18 +1127,34 @@ export const ALL_TOOLS: Anthropic.Tool[] = [
   // ── Local Agent (file system + terminal) ───────────────────────
   {
     name: 'read_file',
-    description: "Read the contents of a file on the user's local machine. Requires the Jarvis local agent to be running.",
+    description: "Read the contents of a file on the user's local machine. Returns line numbers so you can target edits precisely. Requires the Jarvis local agent to be running.",
     input_schema: {
       type: 'object' as const,
       properties: {
         path: { type: 'string', description: 'File path (absolute or relative to agent cwd)' },
+        offset: { type: 'number', description: 'Line number to start reading from (0-indexed, default: 0). Use when a previous read was truncated.' },
+        limit: { type: 'number', description: 'Max number of lines to return (default: 300)' },
       },
       required: ['path'],
     },
   },
   {
+    name: 'edit_file',
+    description: "Make a targeted find-and-replace edit to a file on the user's local machine. Preferred over write_file for modifying existing files — safer and uses fewer tokens. Requires the Jarvis local agent to be running.",
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        path: { type: 'string', description: 'File path to edit' },
+        old_string: { type: 'string', description: 'Exact string to find (must be unique in the file, or set replace_all: true)' },
+        new_string: { type: 'string', description: 'Replacement string' },
+        replace_all: { type: 'boolean', description: 'Replace every occurrence (default: false — errors if old_string appears more than once)' },
+      },
+      required: ['path', 'old_string', 'new_string'],
+    },
+  },
+  {
     name: 'write_file',
-    description: "Write or create a file on the user's local machine. Requires the Jarvis local agent to be running.",
+    description: "Write or overwrite an entire file on the user's local machine. Use edit_file for targeted changes to existing files; use write_file only for new files or complete rewrites. Requires the Jarvis local agent to be running.",
     input_schema: {
       type: 'object' as const,
       properties: {

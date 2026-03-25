@@ -47,19 +47,40 @@ const headers = { Authorization: `Bearer ${JARVIS_KEY}`, 'Content-Type': 'applic
 
 // ── Tool implementations ───────────────────────────────────────────────────────
 
-function readFile({ path: filePath }) {
+function readFile({ path: filePath, offset = 0, limit = MAX_FILE_LINES }) {
   const abs = resolve(filePath)
   if (!existsSync(abs)) throw new Error(`File not found: ${filePath}`)
   const raw = readFileSync(abs, 'utf-8')
   const lines = raw.split('\n')
-  const truncated = lines.length > MAX_FILE_LINES
-  const content = truncated ? lines.slice(0, MAX_FILE_LINES).join('\n') : raw
+  const start = Math.max(0, offset)
+  const end = Math.min(start + limit, lines.length)
+  const content = lines.slice(start, end).join('\n')
   return {
     path: abs,
     content,
     total_lines: lines.length,
-    ...(truncated && { note: `Truncated to first ${MAX_FILE_LINES} of ${lines.length} lines` }),
+    start_line: start + 1,
+    end_line: end,
+    ...(end < lines.length && { note: `Showing lines ${start + 1}–${end} of ${lines.length}. Use offset: ${end} to read more.` }),
   }
+}
+
+function editFile({ path: filePath, old_string, new_string, replace_all = false }) {
+  const abs = resolve(filePath)
+  if (!existsSync(abs)) throw new Error(`File not found: ${filePath}`)
+  const content = readFileSync(abs, 'utf-8')
+  if (!content.includes(old_string)) {
+    throw new Error(`String not found in file:\n${old_string.slice(0, 120)}`)
+  }
+  const count = content.split(old_string).length - 1
+  if (count > 1 && !replace_all) {
+    throw new Error(`String appears ${count} times — set replace_all: true to replace all, or add more context to make it unique`)
+  }
+  const updated = replace_all
+    ? content.split(old_string).join(new_string)
+    : content.replace(old_string, new_string)
+  writeFileSync(abs, updated, 'utf-8')
+  return { path: abs, replacements: replace_all ? count : 1 }
 }
 
 function writeFile({ path: filePath, content }) {
@@ -411,6 +432,7 @@ async function screenType({ text, press_return = false }) {
 async function executeTask(tool, input) {
   switch (tool) {
     case 'read_file':         return readFile(input)
+    case 'edit_file':         return editFile(input)
     case 'write_file':        return writeFile(input)
     case 'list_files':        return listFiles(input)
     case 'run_command':       return runCommand(input)
@@ -517,24 +539,30 @@ function getElectronBin() {
 }
 
 async function bootstrapOverlay() {
-  // Download any missing overlay files from the Jarvis server
+  // Always re-download overlay source files so updates propagate automatically.
+  // node_modules is only installed once (it's big).
   mkdirSync(OVERLAY_DIR, { recursive: true })
-  let downloaded = false
+  let changed = false
   for (const file of OVERLAY_FILES) {
     const dest = join(OVERLAY_DIR, file)
-    if (!existsSync(dest)) {
-      try {
-        const res = await fetch(`${JARVIS_URL}/api/agent/overlay/${file}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        writeFileSync(dest, await res.text(), 'utf-8')
-        downloaded = true
-      } catch (err) {
+    try {
+      const res = await fetch(`${JARVIS_URL}/api/agent/overlay/${file}`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const fresh = await res.text()
+      const existing = existsSync(dest) ? readFileSync(dest, 'utf-8') : null
+      if (fresh !== existing) {
+        writeFileSync(dest, fresh, 'utf-8')
+        changed = true
+      }
+    } catch (err) {
+      // Server unreachable or file missing — fall back to cached copy if present
+      if (!existsSync(dest)) {
         console.warn(`⚠️  Could not download overlay/${file}: ${err.message}`)
         return false
       }
     }
   }
-  if (downloaded) console.log('✓  Overlay files downloaded')
+  if (changed) console.log('✓  Overlay updated')
 
   // Run npm install if node_modules is missing
   if (!existsSync(join(OVERLAY_DIR, 'node_modules'))) {

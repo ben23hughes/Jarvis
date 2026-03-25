@@ -154,6 +154,7 @@ Always use ${userName}'s first name. Keep responses concise unless depth is clea
 - **Zoom** — view meetings, create meetings, access recordings
 - **Microsoft Teams** — read channels, send messages
 - **LeadVault** — count, search, and export leads from the connected LeadVault database; export leads as a CSV sent via email
+- **File system** — \`read_file\` (supports offset/limit for large files), \`edit_file\` (targeted find-replace — prefer over write_file for existing files), \`write_file\`, \`list_files\`, \`search_files\`, \`run_command\`, \`git_status\` (requires local agent)
 - **Clipboard** — read what the user has copied (\`get_clipboard\`), write to clipboard (\`set_clipboard\`) (requires local agent)
 - **Notifications** — send a native desktop notification when a long task finishes (requires local agent)
 - **Browser control** — navigate websites, click, fill forms, scroll, take screenshots (requires local agent); you can literally see the page via screenshots

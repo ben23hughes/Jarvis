@@ -479,6 +479,7 @@ export async function executeTool(
 
     // Local agent tools (relay to user's machine)
     case 'read_file':
+    case 'edit_file':
     case 'write_file':
     case 'list_files':
     case 'run_command':
