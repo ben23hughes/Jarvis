@@ -1,21 +1,21 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Mic, MicOff } from 'lucide-react'
+import { Send, Mic, MicOff, Calendar, Mail, MessageSquare, Target, ListTodo, Cloud, TrendingUp, Sunrise } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageBubble } from './message-bubble'
 import type { ChatMessage } from '@/types/chat'
 
 const SUGGESTIONS = [
-  { emoji: '📅', label: "Today's schedule",     prompt: "What's on my calendar today?" },
-  { emoji: '📧', label: 'Catch up on email',    prompt: 'Catch me up on my unread emails' },
-  { emoji: '💬', label: 'Check Slack',           prompt: "What's new in my Slack?" },
-  { emoji: '🎯', label: 'Goal progress',         prompt: 'How am I tracking on my goals?' },
-  { emoji: '📋', label: 'Open Linear issues',    prompt: 'What are my open Linear issues?' },
-  { emoji: '🌤️', label: "Weather today",         prompt: "What's the weather like today?" },
-  { emoji: '💰', label: 'Portfolio snapshot',    prompt: 'Give me a quick snapshot of my portfolio' },
-  { emoji: '🌅', label: 'Morning briefing',      prompt: 'Give me my morning briefing' },
+  { icon: Calendar,      label: "What's on today?",     prompt: "What's on my calendar today?" },
+  { icon: Mail,          label: 'Catch up on email',    prompt: 'Catch me up on my unread emails' },
+  { icon: MessageSquare, label: 'Check Slack',          prompt: "What's new in my Slack?" },
+  { icon: Target,        label: 'Goal progress',        prompt: 'How am I tracking on my goals?' },
+  { icon: ListTodo,      label: 'Open Linear issues',   prompt: 'What are my open Linear issues?' },
+  { icon: Cloud,         label: 'Weather today',        prompt: "What's the weather like today?" },
+  { icon: TrendingUp,    label: 'Portfolio snapshot',   prompt: 'Give me a quick snapshot of my portfolio' },
+  { icon: Sunrise,       label: 'Morning briefing',     prompt: 'Give me my morning briefing' },
 ]
 
 interface ChatInterfaceProps {
@@ -264,21 +264,24 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
         </div>
       </ScrollArea>
 
-      {/* Suggestion chips — only on fresh conversation */}
+      {/* Suggestion grid — only on fresh conversation */}
       {showSuggestions && (
-        <div className="mb-3 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s.label}
-              type="button"
-              onClick={() => sendMessage(s.prompt)}
-              disabled={isLoading}
-              className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:bg-muted hover:text-foreground disabled:opacity-40"
-            >
-              <span>{s.emoji}</span>
-              <span>{s.label}</span>
-            </button>
-          ))}
+        <div className="mb-3 grid grid-cols-4 gap-2">
+          {SUGGESTIONS.map((s) => {
+            const Icon = s.icon
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => sendMessage(s.prompt)}
+                disabled={isLoading}
+                className="flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted disabled:opacity-40"
+              >
+                <Icon className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-medium leading-snug text-foreground">{s.label}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 
