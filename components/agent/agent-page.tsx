@@ -138,6 +138,10 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
   const [apiKey, setApiKey] = useState(initialKey)
   const [regenerating, setRegenerating] = useState(false)
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null)
+  const [showSetupGuide, setShowSetupGuide] = useState(false)
+
+  // If the agent has ever connected, we know setup is done
+  const hasBeenSetup = !!lastHeartbeat
 
   const pollStatus = useCallback(async () => {
     const res = await fetch('/api/agent/status')
@@ -204,7 +208,7 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
           )}
           {!connected && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              Follow the setup guide below to get started.
+              {hasBeenSetup ? 'Run the commands below to reconnect.' : 'Follow the setup guide below to get started.'}
             </p>
           )}
         </div>
@@ -212,6 +216,94 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
           connected ? 'bg-emerald-500 animate-pulse' : 'bg-muted-foreground/40'
         }`} />
       </div>
+
+      {/* ── Already set up: show run command prominently ── */}
+      {hasBeenSetup && (
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-lg font-semibold">Start the agent</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Open Terminal and run these two commands.
+            </p>
+          </div>
+          <div className="relative">
+            <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3.5 text-sm font-mono leading-relaxed">
+              {`cd ~/jarvis-agent\nnode jarvis-agent.mjs`}
+            </pre>
+            <button
+              onClick={() => copy('cd ~/jarvis-agent\nnode jarvis-agent.mjs', 'run')}
+              className="absolute top-2.5 right-2.5 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
+              title="Copy"
+            >
+              {copied['run']
+                ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
+            </button>
+          </div>
+
+          {/* Collapsible setup guide for returning users */}
+          <button
+            onClick={() => setShowSetupGuide((v) => !v)}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors pt-1"
+          >
+            {showSetupGuide
+              ? <ChevronUp className="h-4 w-4" />
+              : <ChevronDown className="h-4 w-4" />}
+            {showSetupGuide ? 'Hide' : 'Show'} setup instructions
+          </button>
+        </div>
+      )}
+
+      {/* Setup guide — always shown for new users, collapsible for returning users */}
+      {(!hasBeenSetup || showSetupGuide) && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">Setup guide</h2>
+
+          <div className="space-y-3">
+            {SETUP_STEPS.map((step) => (
+              <div key={step.n} className="flex gap-4">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">
+                  {step.n}
+                </div>
+
+                <div className="flex-1 min-w-0 space-y-2 pb-2">
+                  <p className="text-sm font-semibold">{step.title}</p>
+                  <p className="text-sm text-muted-foreground">{step.body}</p>
+
+                  {step.code && (
+                    <div className="space-y-2">
+                      <div className="relative">
+                        <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
+                          {step.code(apiKey)}
+                        </pre>
+                        <button
+                          onClick={() => copy(step.code!(apiKey), `step-${step.n}`)}
+                          className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
+                          title="Copy"
+                        >
+                          {copied[`step-${step.n}`]
+                            ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                            : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
+                        </button>
+                      </div>
+                      {'downloadAgent' in step && step.downloadAgent && (
+                        <a
+                          href="/jarvis-agent.mjs"
+                          download="jarvis-agent.mjs"
+                          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-md px-3 py-1.5 transition-colors"
+                        >
+                          <Download className="h-3 w-3" />
+                          Download jarvis-agent.mjs
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* What it can do */}
       <div className="space-y-4">
@@ -228,7 +320,6 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
             const isOpen = expandedCapability === cap.id
             return (
               <div key={cap.id} className="rounded-xl border overflow-hidden">
-                {/* Header row */}
                 <button
                   onClick={() => setExpandedCapability(isOpen ? null : cap.id)}
                   className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-accent/40 transition-colors"
@@ -253,7 +344,6 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
                     : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
                 </button>
 
-                {/* Expanded tool list */}
                 {isOpen && (
                   <div className="border-t divide-y bg-muted/20">
                     {cap.tools.map((tool) => (
@@ -272,56 +362,6 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
               </div>
             )
           })}
-        </div>
-      </div>
-
-      {/* Setup guide */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold">Setup guide</h2>
-
-        <div className="space-y-3">
-          {SETUP_STEPS.map((step) => (
-            <div key={step.n} className="flex gap-4">
-              {/* Step number */}
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">
-                {step.n}
-              </div>
-
-              <div className="flex-1 min-w-0 space-y-2 pb-2">
-                <p className="text-sm font-semibold">{step.title}</p>
-                <p className="text-sm text-muted-foreground">{step.body}</p>
-
-                {step.code && (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
-                        {step.code(apiKey)}
-                      </pre>
-                      <button
-                        onClick={() => copy(step.code!(apiKey), `step-${step.n}`)}
-                        className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
-                        title="Copy"
-                      >
-                        {copied[`step-${step.n}`]
-                          ? <Check className="h-3.5 w-3.5 text-emerald-400" />
-                          : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
-                      </button>
-                    </div>
-                    {'downloadAgent' in step && step.downloadAgent && (
-                      <a
-                        href="/jarvis-agent.mjs"
-                        download="jarvis-agent.mjs"
-                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-md px-3 py-1.5 transition-colors"
-                      >
-                        <Download className="h-3 w-3" />
-                        Download jarvis-agent.mjs
-                      </a>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
         </div>
       </div>
 

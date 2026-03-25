@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Jarvis Local Agent
- * Polls the Jarvis server for tasks and executes them on your machine.
+ * Connects to Jarvis and executes tasks on your machine via long-polling.
  *
  * Usage:
  *   JARVIS_KEY=jv_xxx JARVIS_URL=https://jarvis4.com node agent/index.mjs
@@ -11,7 +11,7 @@
  *   JARVIS_URL=https://jarvis4.com
  */
 
-import { execSync } from 'child_process'
+import { execSync, spawnSync, spawn } from 'child_process'
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, statSync, unlinkSync } from 'fs'
 import { join, dirname, resolve } from 'path'
 import { tmpdir } from 'os'
@@ -28,8 +28,13 @@ if (existsSync(envPath)) {
 
 const JARVIS_KEY = process.env.JARVIS_KEY
 const JARVIS_URL = (process.env.JARVIS_URL ?? 'https://www.jarvis4.com').replace(/\/$/, '')
-const POLL_INTERVAL = 1500 // ms
 const HEARTBEAT_INTERVAL = 5000 // ms
+
+// Token-saving limits
+const MAX_FILE_LINES = 300
+const MAX_COMMAND_CHARS = 8_000
+const MAX_SEARCH_FILES = 10
+const MAX_SEARCH_MATCHES = 5
 
 if (!JARVIS_KEY) {
   console.error('❌  JARVIS_KEY is required. Get it from the Jarvis 4 page in Jarvis.')
@@ -44,8 +49,16 @@ const headers = { Authorization: `Bearer ${JARVIS_KEY}`, 'Content-Type': 'applic
 function readFile({ path: filePath }) {
   const abs = resolve(filePath)
   if (!existsSync(abs)) throw new Error(`File not found: ${filePath}`)
-  const content = readFileSync(abs, 'utf-8')
-  return { path: abs, content, lines: content.split('\n').length }
+  const raw = readFileSync(abs, 'utf-8')
+  const lines = raw.split('\n')
+  const truncated = lines.length > MAX_FILE_LINES
+  const content = truncated ? lines.slice(0, MAX_FILE_LINES).join('\n') : raw
+  return {
+    path: abs,
+    content,
+    total_lines: lines.length,
+    ...(truncated && { note: `Truncated to first ${MAX_FILE_LINES} of ${lines.length} lines` }),
+  }
 }
 
 function writeFile({ path: filePath, content }) {
@@ -83,21 +96,26 @@ function listFiles({ directory = '.', pattern }) {
   return { directory: abs, files: walk(abs) }
 }
 
+function truncateOutput(raw, max = MAX_COMMAND_CHARS) {
+  if (raw.length <= max) return raw
+  return raw.slice(0, max) + `\n… (truncated — ${raw.length} chars total, showing first ${max})`
+}
+
 function runCommand({ command, cwd }) {
   const workDir = cwd ? resolve(cwd) : process.cwd()
   try {
-    const output = execSync(command, {
+    const raw = execSync(command, {
       cwd: workDir,
       timeout: 30_000,
       maxBuffer: 1024 * 1024 * 5,
     }).toString()
-    return { command, cwd: workDir, output, exit_code: 0 }
+    return { command, cwd: workDir, output: truncateOutput(raw), exit_code: 0 }
   } catch (err) {
     return {
       command,
       cwd: workDir,
-      output: err.stdout?.toString() ?? '',
-      stderr: err.stderr?.toString() ?? err.message,
+      output: truncateOutput(err.stdout?.toString() ?? ''),
+      stderr: truncateOutput(err.stderr?.toString() ?? err.message),
       exit_code: err.status ?? 1,
     }
   }
@@ -113,20 +131,20 @@ function searchFiles({ query, directory = '.', file_pattern }) {
     ).toString()
     const files = output.trim().split('\n').filter(Boolean)
 
-    const results = files.slice(0, 20).map((f) => {
+    const results = files.slice(0, MAX_SEARCH_FILES).map((f) => {
       try {
         const lines = readFileSync(f, 'utf-8').split('\n')
         const matches = lines
           .map((l, i) => ({ line: i + 1, text: l }))
           .filter((l) => l.text.includes(query))
-          .slice(0, 5)
+          .slice(0, MAX_SEARCH_MATCHES)
         return { file: f.replace(abs + '/', ''), matches }
       } catch {
         return { file: f, matches: [] }
       }
     })
 
-    return { query, results }
+    return { query, results, total_files: files.length }
   } catch {
     return { query, results: [] }
   }
@@ -153,7 +171,7 @@ async function getPage() {
   if (!_page || _page.isClosed()) {
     const { chromium } = await import('playwright')
     _browser = await chromium.launch({
-      headless: false, // User can watch Jarvis browse
+      headless: false,
       args: ['--start-maximized'],
     })
     _page = await _browser.newPage()
@@ -251,7 +269,6 @@ async function browserClose() {
 async function screenScreenshot() {
   const tmpPath = join(tmpdir(), `jarvis_screen_${Date.now()}.jpg`)
   try {
-    // macOS built-in screencapture. -x = no sound, -t jpg = JPEG
     execSync(`screencapture -x -t jpg "${tmpPath}"`, { timeout: 5000 })
     const buffer = readFileSync(tmpPath)
     return {
@@ -266,7 +283,6 @@ async function screenScreenshot() {
 }
 
 async function screenClick({ x, y, double_click = false }) {
-  // AppleScript for clicking at coordinates
   const click = double_click ? 'double click' : 'click'
   execSync(
     `osascript -e 'tell application "System Events" to ${click} at {${x}, ${y}}'`,
@@ -314,39 +330,108 @@ async function executeTask(tool, input) {
   }
 }
 
-// ── Polling loop ───────────────────────────────────────────────────────────────
-
-async function pollTasks() {
+async function executeAndReport(task) {
+  notifyOverlay('executing', task.tool)
   try {
-    const res = await fetch(`${JARVIS_URL}/api/agent/tasks`, { headers })
-    if (!res.ok) {
-      if (res.status === 401) { console.error('❌  Invalid API key'); process.exit(1) }
-      return
-    }
-    const { tasks } = await res.json()
-    for (const task of tasks ?? []) {
-      try {
-        console.log(`▶  ${task.tool}`, JSON.stringify(task.input).slice(0, 80))
-        const result = await executeTask(task.tool, task.input)
-        await fetch(`${JARVIS_URL}/api/agent/tasks/${task.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ status: 'completed', result }),
-        })
-        console.log(`✓  ${task.tool} done`)
-      } catch (err) {
-        await fetch(`${JARVIS_URL}/api/agent/tasks/${task.id}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ status: 'failed', error: err.message }),
-        })
-        console.error(`✗  ${task.tool} failed:`, err.message)
-      }
-    }
+    console.log(`▶  ${task.tool}`, JSON.stringify(task.input).slice(0, 80))
+    const result = await executeTask(task.tool, task.input)
+    await fetch(`${JARVIS_URL}/api/agent/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status: 'completed', result }),
+    })
+    console.log(`✓  ${task.tool} done`)
   } catch (err) {
-    // Network error — server might be down, keep retrying silently
+    notifyOverlay('error')
+    await fetch(`${JARVIS_URL}/api/agent/tasks/${task.id}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ status: 'failed', error: err.message }),
+    })
+    console.error(`✗  ${task.tool} failed:`, err.message)
+    return
+  }
+  notifyOverlay('idle')
+}
+
+// ── Long-poll loop (replaces setInterval polling) ─────────────────────────────
+
+async function runLoop() {
+  while (true) {
+    try {
+      const controller = new AbortController()
+      // 25s — slightly longer than server's 20s hold, to avoid race on timeout
+      const timeoutId = setTimeout(() => controller.abort(), 25_000)
+
+      const res = await fetch(`${JARVIS_URL}/api/agent/tasks`, {
+        headers,
+        signal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+
+      if (!res.ok) {
+        if (res.status === 401) { console.error('❌  Invalid API key'); process.exit(1) }
+        await new Promise((r) => setTimeout(r, 2000))
+        continue
+      }
+
+      const { tasks } = await res.json()
+      for (const task of tasks ?? []) {
+        // Execute in background so we immediately re-enter the long-poll
+        executeAndReport(task).catch(() => {})
+      }
+      // Loop immediately — server will hold the next request open if nothing pending
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        // Server timeout — reconnect immediately
+        continue
+      }
+      // Network error — brief pause before retry
+      await new Promise((r) => setTimeout(r, 2000))
+    }
   }
 }
+
+// ── Overlay (macOS screen widget + edge glow) ─────────────────────────────────
+
+const OVERLAY_SRC = new URL('overlay.swift', import.meta.url).pathname
+const OVERLAY_BIN = new URL('overlay-bin', import.meta.url).pathname
+
+let overlayProcess = null
+
+function buildOverlay() {
+  if (existsSync(OVERLAY_BIN)) return true
+  const swiftc = spawnSync('which', ['swiftc'], { encoding: 'utf8' })
+  if (swiftc.status !== 0) {
+    console.log('ℹ️   swiftc not found — overlay disabled (install Xcode Command Line Tools to enable)')
+    return false
+  }
+  console.log('🎨  Building Jarvis overlay (first run only)…')
+  const result = spawnSync('swiftc', [OVERLAY_SRC, '-o', OVERLAY_BIN], { stdio: 'inherit', timeout: 60_000 })
+  if (result.status !== 0) {
+    console.warn('⚠️  Overlay build failed — continuing without it')
+    return false
+  }
+  console.log('✓  Overlay built')
+  return true
+}
+
+function spawnOverlay() {
+  if (!buildOverlay()) return
+  overlayProcess = spawn(OVERLAY_BIN, [], { stdio: ['pipe', 'inherit', 'inherit'] })
+  overlayProcess.on('exit', () => { overlayProcess = null })
+  console.log('🎨  Overlay running\n')
+}
+
+function notifyOverlay(event, tool = null) {
+  if (!overlayProcess?.stdin?.writable) return
+  try {
+    const msg = JSON.stringify(tool ? { event, tool } : { event })
+    overlayProcess.stdin.write(msg + '\n')
+  } catch { /* ignore */ }
+}
+
+// ── Heartbeat ─────────────────────────────────────────────────────────────────
 
 async function sendHeartbeat() {
   try {
@@ -363,13 +448,10 @@ async function sendHeartbeat() {
 console.log(`🤖  Jarvis Agent`)
 console.log(`   Server : ${JARVIS_URL}`)
 console.log(`   CWD    : ${process.cwd()}`)
-console.log(`   Polling every ${POLL_INTERVAL}ms\n`)
+console.log(`   Mode   : long-poll (instant task delivery)`)
 
-// Initial heartbeat
 await sendHeartbeat()
-
-// Heartbeat loop
 setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
 
-// Poll loop
-setInterval(pollTasks, POLL_INTERVAL)
+spawnOverlay()
+runLoop()

@@ -156,15 +156,39 @@ export async function dispatchAgentTask(
   }
 
   const task = await createAgentTask(userId, tool, input)
-  const deadline = Date.now() + 25_000
 
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 600))
-    const t = await getAgentTask(task.id)
-    if (!t) continue
-    if (t.status === 'completed') return t.result
-    if (t.status === 'failed') throw new Error(t.error ?? 'Agent task failed')
-  }
+  // Quick check — agent may have already completed the task
+  const quick = await getAgentTask(task.id)
+  if (quick?.status === 'completed') return quick.result
+  if (quick?.status === 'failed') throw new Error(quick.error ?? 'Agent task failed')
 
-  throw new Error('Agent task timed out (25s). Is the agent still running?')
+  // Use Supabase Realtime to react instantly instead of polling the DB
+  return new Promise((resolve, reject) => {
+    const supabase = getServiceClient()
+
+    const cleanup = (fn: () => void) => {
+      clearTimeout(timer)
+      supabase.removeChannel(channel)
+      fn()
+    }
+
+    const timer = setTimeout(
+      () => cleanup(() => reject(new Error('Agent task timed out (25s). Is the agent still running?'))),
+      25_000
+    )
+
+    const channel = supabase
+      .channel(`task_${task.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'agent_tasks', filter: `id=eq.${task.id}` },
+        async () => {
+          const t = await getAgentTask(task.id)
+          if (!t) return
+          if (t.status === 'completed') cleanup(() => resolve(t.result))
+          else if (t.status === 'failed') cleanup(() => reject(new Error(t.error ?? 'Agent task failed')))
+        }
+      )
+      .subscribe()
+  })
 }
