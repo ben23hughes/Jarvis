@@ -83,23 +83,45 @@ const CAPABILITIES = [
   },
 ]
 
-const SETUP_STEPS = [
+type Platform = 'mac' | 'windows'
+
+interface SetupStep {
+  n: number
+  title: string
+  body: string
+  code?: (key: string) => string
+  downloadAgent?: boolean
+  windows?: {
+    title?: string
+    body?: string
+    code?: (key: string) => string
+  }
+}
+
+const SETUP_STEPS: SetupStep[] = [
   {
     n: 1,
-    title: 'Open Terminal on your Mac',
-    body: 'Terminal is a built-in app that lets you run commands. To open it: press ⌘ Space (Command + Spacebar) to open Spotlight, type Terminal, then press Enter. A black or white window will appear — that\'s it.',
+    title: 'Open Terminal',
+    body: 'Terminal is built into macOS. Press ⌘ Space to open Spotlight, type Terminal, then press Enter.',
+    windows: {
+      title: 'Open PowerShell',
+      body: 'Press Win+X and choose "Windows PowerShell" or "Terminal", or search for PowerShell in the Start menu.',
+    },
   },
   {
     n: 2,
     title: 'Check that Node.js is installed',
-    body: 'The agent runs on Node.js. Paste this command into Terminal and press Enter. If you see a version number (like v20.x.x) you\'re good. If you get an error, download Node.js from nodejs.org — click the big "LTS" button and install it like any other Mac app.',
+    body: 'Paste this command and press Enter. If you see a version number like v20.x.x you\'re good. If not, download Node.js from nodejs.org — click the "LTS" button and install it.',
     code: () => `node --version`,
   },
   {
     n: 3,
     title: 'Create a folder for the agent',
-    body: 'This creates a new folder called "jarvis-agent" in your home directory and opens it. Paste both lines into Terminal and press Enter.',
+    body: 'This creates a folder called "jarvis-agent" in your home directory and opens it.',
     code: () => `mkdir -p ~/jarvis-agent\ncd ~/jarvis-agent`,
+    windows: {
+      code: () => `mkdir ~/jarvis-agent\ncd ~/jarvis-agent`,
+    },
   },
   {
     n: 4,
@@ -107,23 +129,31 @@ const SETUP_STEPS = [
     body: 'This downloads the agent script into the folder you just created. Paste the command below and press Enter, or use the Download button.',
     code: () => `curl -L -o jarvis-agent.mjs https://www.jarvis4.com/jarvis-agent.mjs`,
     downloadAgent: true,
+    windows: {
+      body: 'Run this in PowerShell to download the agent script, or use the Download button.',
+      code: () => `Invoke-WebRequest -Uri "https://www.jarvis4.com/jarvis-agent.mjs" -OutFile "jarvis-agent.mjs"`,
+    },
   },
   {
     n: 5,
     title: 'Add your API key',
-    body: 'This creates a settings file with your personal key. Run each line one at a time — copy the first line, press Enter, then copy the second line and press Enter.',
+    body: 'This creates a settings file with your personal key. Run each line one at a time.',
     code: (key: string) => `echo 'JARVIS_KEY=${key}' > .env\necho 'JARVIS_URL=https://www.jarvis4.com' >> .env`,
+    windows: {
+      body: 'Run these two commands in PowerShell to create your settings file.',
+      code: (key: string) => `"JARVIS_KEY=${key}" | Set-Content .env\n"JARVIS_URL=https://www.jarvis4.com" | Add-Content .env`,
+    },
   },
   {
     n: 6,
     title: 'Start the agent',
-    body: 'Run this command to start the agent. You\'ll see "🤖 Jarvis Agent" and "Server: https://www.jarvis4.com" printed — that means it\'s working. Leave this window open while you use Jarvis. The green dot at the top of this page will turn on within a few seconds.',
+    body: 'Run this command to start the agent. You\'ll see "🤖 Jarvis Agent" printed — that means it\'s working. Leave this window open while you use Jarvis.',
     code: () => `node jarvis-agent.mjs`,
   },
   {
     n: 7,
     title: 'Start chatting',
-    body: 'Go to the Chat page and start asking Jarvis to do things on your computer — read files, run commands, browse the web, and more. Next time you want to use the agent, open Terminal and run the two commands below.',
+    body: 'Go to Chat and start asking Jarvis to do things on your computer. Next time you want to use the agent, run these two commands.',
     code: () => `cd ~/jarvis-agent\nnode jarvis-agent.mjs`,
   },
 ]
@@ -139,6 +169,7 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
   const [regenerating, setRegenerating] = useState(false)
   const [expandedCapability, setExpandedCapability] = useState<string | null>(null)
   const [showSetupGuide, setShowSetupGuide] = useState(false)
+  const [platform, setPlatform] = useState<Platform>('mac')
 
   // If the agent has ever connected, we know setup is done
   const hasBeenSetup = !!lastHeartbeat
@@ -259,48 +290,70 @@ export function AgentPage({ apiKey: initialKey, connected: initialConnected, cwd
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">Setup guide</h2>
 
-          <div className="space-y-3">
-            {SETUP_STEPS.map((step) => (
-              <div key={step.n} className="flex gap-4">
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">
-                  {step.n}
-                </div>
-
-                <div className="flex-1 min-w-0 space-y-2 pb-2">
-                  <p className="text-sm font-semibold">{step.title}</p>
-                  <p className="text-sm text-muted-foreground">{step.body}</p>
-
-                  {step.code && (
-                    <div className="space-y-2">
-                      <div className="relative">
-                        <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
-                          {step.code(apiKey)}
-                        </pre>
-                        <button
-                          onClick={() => copy(step.code!(apiKey), `step-${step.n}`)}
-                          className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
-                          title="Copy"
-                        >
-                          {copied[`step-${step.n}`]
-                            ? <Check className="h-3.5 w-3.5 text-emerald-400" />
-                            : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
-                        </button>
-                      </div>
-                      {'downloadAgent' in step && step.downloadAgent && (
-                        <a
-                          href="/jarvis-agent.mjs"
-                          download="jarvis-agent.mjs"
-                          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-md px-3 py-1.5 transition-colors"
-                        >
-                          <Download className="h-3 w-3" />
-                          Download jarvis-agent.mjs
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+          {/* Platform tabs */}
+          <div className="flex gap-1 rounded-lg border bg-muted/40 p-1 w-fit">
+            {(['mac', 'windows'] as Platform[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPlatform(p)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                  platform === p
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {p === 'mac' ? 'Mac' : 'Windows'}
+              </button>
             ))}
+          </div>
+
+          <div className="space-y-3">
+            {SETUP_STEPS.map((step) => {
+              const title = (platform === 'windows' && step.windows?.title) ? step.windows.title : step.title
+              const body  = (platform === 'windows' && step.windows?.body)  ? step.windows.body  : step.body
+              const code  = (platform === 'windows' && step.windows?.code)  ? step.windows.code  : step.code
+              return (
+                <div key={step.n} className="flex gap-4">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold mt-0.5">
+                    {step.n}
+                  </div>
+
+                  <div className="flex-1 min-w-0 space-y-2 pb-2">
+                    <p className="text-sm font-semibold">{title}</p>
+                    <p className="text-sm text-muted-foreground">{body}</p>
+
+                    {code && (
+                      <div className="space-y-2">
+                        <div className="relative">
+                          <pre className="rounded-lg border bg-zinc-950 text-zinc-100 px-4 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
+                            {code(apiKey)}
+                          </pre>
+                          <button
+                            onClick={() => copy(code(apiKey), `step-${step.n}`)}
+                            className="absolute top-2 right-2 rounded border border-zinc-700 bg-zinc-800 p-1.5 hover:bg-zinc-700 transition-colors"
+                            title="Copy"
+                          >
+                            {copied[`step-${step.n}`]
+                              ? <Check className="h-3.5 w-3.5 text-emerald-400" />
+                              : <Copy className="h-3.5 w-3.5 text-zinc-300" />}
+                          </button>
+                        </div>
+                        {step.downloadAgent && (
+                          <a
+                            href="/jarvis-agent.mjs"
+                            download="jarvis-agent.mjs"
+                            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border rounded-md px-3 py-1.5 transition-colors"
+                          >
+                            <Download className="h-3 w-3" />
+                            Download jarvis-agent.mjs
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
