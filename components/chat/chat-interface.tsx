@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { useChatStore } from './chat-store'
 import { Send, Mic, MicOff, Calendar, Mail, MessageSquare, Target, ListTodo, Cloud, TrendingUp, Sunrise, GitPullRequest, DollarSign, Bell, Globe, Users, BookOpen, Zap, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -34,17 +35,7 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   const fullGreeting = `Hi ${userName}, how can I help today?`
   const [greetingText, setGreetingText] = useState('')
   const [greetingDone, setGreetingDone] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    if (typeof window === 'undefined') return []
-    try {
-      const saved = sessionStorage.getItem('jarvis_chat_messages')
-      if (!saved) return []
-      const parsed = JSON.parse(saved) as ChatMessage[]
-      return parsed.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }))
-    } catch {
-      return []
-    }
-  })
+  const { messages, setMessages } = useChatStore()
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -106,11 +97,6 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullGreeting])
 
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('jarvis_chat_messages', JSON.stringify(messages))
-    } catch {}
-  }, [messages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
