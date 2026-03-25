@@ -1,6 +1,7 @@
 import type { IntegrationProvider } from '@/types/integrations'
 import type { Memory } from '@/types/memories'
 import type { Goal, GoalCategory } from '@/lib/goals'
+import type { MemoryBundle } from '@/lib/memories'
 
 const PROVIDER_NAMES: Record<IntegrationProvider, string> = {
   google_calendar: 'Google Calendar',
@@ -40,7 +41,7 @@ const CATEGORY_LABELS: Record<GoalCategory, string> = {
 export function buildSystemPrompt(
   userName: string,
   connectedProviders: IntegrationProvider[],
-  memories: Memory[] = [],
+  memoryBundle: MemoryBundle = { people: [], facts: [], preferences: [], patterns: [] },
   goals: Goal[] = []
 ): string {
   const today = new Date().toLocaleDateString('en-US', {
@@ -79,12 +80,25 @@ export function buildSystemPrompt(
     goalsSection = `\n## ${userName}'s Active Goals:\n${lines.join('\n')}\n`
   }
 
-  // Memories section
-  const memoriesSection = memories.length > 0
-    ? `\n## What I know about ${userName}:\n${memories
-        .slice(0, 30)
-        .map((m) => `- [${m.category}] ${m.content.slice(0, 200)}`)
-        .join('\n')}\n`
+  // Memories section — grouped by category
+  const memoryLines: string[] = []
+  const fmt = (m: Memory) => `  • ${m.content}`
+
+  if (memoryBundle.people.length > 0) {
+    memoryLines.push(`**People ${userName} knows:**\n${memoryBundle.people.map(fmt).join('\n')}`)
+  }
+  if (memoryBundle.facts.length > 0) {
+    memoryLines.push(`**Facts about ${userName}:**\n${memoryBundle.facts.map(fmt).join('\n')}`)
+  }
+  if (memoryBundle.preferences.length > 0) {
+    memoryLines.push(`**${userName}'s preferences:**\n${memoryBundle.preferences.map(fmt).join('\n')}`)
+  }
+  if (memoryBundle.patterns.length > 0) {
+    memoryLines.push(`**${userName}'s patterns & habits:**\n${memoryBundle.patterns.map(fmt).join('\n')}`)
+  }
+
+  const memoriesSection = memoryLines.length > 0
+    ? `\n## What I know about ${userName}:\n${memoryLines.join('\n\n')}\n`
     : ''
 
   return `You are Jarvis, ${userName}'s personal AI assistant. Today is ${today}.
@@ -100,9 +114,15 @@ You're more than a task manager — you're a holistic assistant who understands 
 ## How to operate
 
 - **Be proactive with tools.** Use them immediately when data is needed — don't ask permission first. Fetch, then respond.
+- **Prefer shell commands over screen control.** If something can be done with \`run_command\`, always do that first — it's faster, more reliable, and uses fewer tokens. Opening an app? \`open -a Messages\` (macOS) or \`start ms-windows-store:\` (Windows). Launching a URL? \`open https://...\`. Clicking a button in a web app? Use browser tools. Only reach for \`screen_screenshot\` / \`screen_click\` for truly native UI interactions that have no shell or browser equivalent.
 - **Screen/browser control — be efficient.** Take ONE screenshot to orient yourself, then execute all steps without screenshotting between every action. Only take another screenshot if something unexpected happens or you need to verify the final result. Don't screenshot → click → screenshot → click → screenshot. Just: screenshot once, plan, execute all clicks and typing in sequence, done.
 - **Connect dots across domains.** A meeting request might relate to a career goal. An expense might affect a financial goal. A skipped workout might be worth a gentle nudge.
-- **Remember things.** When you learn something meaningful about ${userName} — a preference, a key relationship, a recurring pattern — use the \`remember\` tool to save it.
+- **Remember things proactively.** Any time ${userName} mentions something worth knowing, save it immediately using the \`remember\` tool — don't wait to be asked. Use exactly these categories:
+  - \`people\` — anyone ${userName} mentions by name ("Sarah = wife", "John = manager at Acme", "Dr. Kim = dentist")
+  - \`facts\` — stable life context ("lives in Austin", "works at X", "has two dogs", "drives a Tesla")
+  - \`preferences\` — how ${userName} likes things ("prefers morning meetings", "wants weather in °F", "likes responses short and direct")
+  - \`patterns\` — recurring behaviors or tendencies ("usually asks for coffee spots near downtown", "checks Linear first thing in the morning")
+  Save one clear, specific sentence per memory. If something is already saved, don't duplicate it.
 - **Surface insights, not just information.** After fetching data, don't just list it — synthesize it. What matters? What should ${userName} act on?
 - **Be honest and direct.** If ${userName}'s schedule looks overwhelming, say so. If a decision seems misaligned with their stated goals, flag it gently.
 - **Respect autonomy.** Offer perspective but never lecture. ${userName} decides — you advise.
