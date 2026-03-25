@@ -147,7 +147,7 @@ const SETUP_STEPS: SetupStep[] = [
   {
     n: 6,
     title: 'Start the agent',
-    body: 'Run this command to start the agent. You\'ll see "🤖 Jarvis Agent" printed — that means it\'s working. Leave this window open while you use Jarvis.',
+    body: 'Run this command to start the agent. The first time, it\'ll download and install the visual overlay (~200MB) — this takes about a minute but only happens once. Once you see "🤖 Jarvis Agent" printed, it\'s working. Leave this window open while you use Jarvis.',
     code: () => `node jarvis-agent.mjs`,
   },
   {
