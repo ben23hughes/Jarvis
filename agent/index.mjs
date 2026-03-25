@@ -395,12 +395,12 @@ async function runLoop() {
 // ── Overlay (cross-platform screen widget + edge glow via Electron) ───────────
 
 const OVERLAY_DIR = new URL('overlay/', import.meta.url).pathname
+const OVERLAY_FILES = ['package.json', 'main.js', 'preload.js', 'widget.html', 'edge.html']
 
 let overlayProcess = null
 
 function getElectronBin() {
   const base = join(OVERLAY_DIR, 'node_modules', '.bin', 'electron')
-  // Windows npm creates electron.cmd
   if (process.platform === 'win32') {
     const cmd = base + '.cmd'
     if (existsSync(cmd)) return { bin: cmd, shell: true }
@@ -409,13 +409,51 @@ function getElectronBin() {
   return null
 }
 
-function spawnOverlay() {
-  const overlayPkg = join(OVERLAY_DIR, 'package.json')
-  if (!existsSync(overlayPkg)) return  // overlay dir missing, skip
+async function bootstrapOverlay() {
+  // Download any missing overlay files from the Jarvis server
+  mkdirSync(OVERLAY_DIR, { recursive: true })
+  let downloaded = false
+  for (const file of OVERLAY_FILES) {
+    const dest = join(OVERLAY_DIR, file)
+    if (!existsSync(dest)) {
+      try {
+        const res = await fetch(`${JARVIS_URL}/api/agent/overlay/${file}`)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        writeFileSync(dest, await res.text(), 'utf-8')
+        downloaded = true
+      } catch (err) {
+        console.warn(`⚠️  Could not download overlay/${file}: ${err.message}`)
+        return false
+      }
+    }
+  }
+  if (downloaded) console.log('✓  Overlay files downloaded')
+
+  // Run npm install if node_modules is missing
+  if (!existsSync(join(OVERLAY_DIR, 'node_modules'))) {
+    console.log('🎨  Installing overlay dependencies (one-time, ~200MB)…')
+    const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+    const result = spawnSync(npm, ['install', '--prefer-offline'], {
+      cwd: OVERLAY_DIR,
+      stdio: 'inherit',
+      timeout: 120_000,
+    })
+    if (result.status !== 0) {
+      console.warn('⚠️  Overlay npm install failed — continuing without overlay')
+      return false
+    }
+  }
+
+  return true
+}
+
+async function spawnOverlay() {
+  const ok = await bootstrapOverlay()
+  if (!ok) return
 
   const electron = getElectronBin()
   if (!electron) {
-    console.log('ℹ️   Run "npm install" in agent/overlay/ to enable the visual overlay')
+    console.warn('⚠️  Electron not found after install — overlay disabled')
     return
   }
 
@@ -457,5 +495,5 @@ console.log(`   Mode   : long-poll (instant task delivery)`)
 await sendHeartbeat()
 setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
 
-spawnOverlay()
+await spawnOverlay()
 runLoop()
