@@ -1477,6 +1477,14 @@ const PROVIDER_TOOL_MAP: Record<string, IntegrationProvider[]> = {
   count_leads: [],
   search_leads: [],
   export_leads_csv: [],
+  // File system + terminal — always present; runtime throws if agent not connected
+  read_file: [],
+  edit_file: [],
+  write_file: [],
+  list_files: [],
+  run_command: [],
+  search_files: [],
+  git_status: [],
   // Browser + screen — always present; runtime throws if agent not connected
   browser_navigate: [],
   browser_screenshot: [],
