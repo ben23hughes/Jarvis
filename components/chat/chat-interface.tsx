@@ -1,21 +1,32 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Mic, MicOff, Calendar, Mail, MessageSquare, Target, ListTodo, Cloud, TrendingUp, Sunrise } from 'lucide-react'
+import { Send, Mic, MicOff, Calendar, Mail, MessageSquare, Target, ListTodo, Cloud, TrendingUp, Sunrise, GitPullRequest, DollarSign, Bell, Globe, Users, BookOpen, Zap, CreditCard } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { MessageBubble } from './message-bubble'
 import type { ChatMessage } from '@/types/chat'
 
-const SUGGESTIONS = [
-  { icon: Calendar,      label: "What's on today?",     prompt: "What's on my calendar today?" },
+const ROW1 = [
+  { icon: Sunrise,       label: 'Morning briefing',     prompt: 'Give me my morning briefing' },
+  { icon: Calendar,      label: "Today's schedule",     prompt: "What's on my calendar today?" },
   { icon: Mail,          label: 'Catch up on email',    prompt: 'Catch me up on my unread emails' },
   { icon: MessageSquare, label: 'Check Slack',          prompt: "What's new in my Slack?" },
   { icon: Target,        label: 'Goal progress',        prompt: 'How am I tracking on my goals?' },
-  { icon: ListTodo,      label: 'Open Linear issues',   prompt: 'What are my open Linear issues?' },
-  { icon: Cloud,         label: 'Weather today',        prompt: "What's the weather like today?" },
+  { icon: ListTodo,      label: 'Open issues',          prompt: 'What are my open Linear issues?' },
   { icon: TrendingUp,    label: 'Portfolio snapshot',   prompt: 'Give me a quick snapshot of my portfolio' },
-  { icon: Sunrise,       label: 'Morning briefing',     prompt: 'Give me my morning briefing' },
+  { icon: Cloud,         label: 'Weather today',        prompt: "What's the weather like today?" },
+]
+
+const ROW2 = [
+  { icon: GitPullRequest, label: 'GitHub PRs',          prompt: 'What pull requests are assigned to me on GitHub?' },
+  { icon: CreditCard,     label: 'Spending this month', prompt: 'How much have I spent this month?' },
+  { icon: Bell,           label: 'Set a reminder',      prompt: 'Set me a reminder for later today' },
+  { icon: Globe,          label: 'Search the web',      prompt: 'Search the web for something' },
+  { icon: Users,          label: 'Look up a contact',   prompt: 'Look up a contact for me' },
+  { icon: BookOpen,       label: 'Search Notion',       prompt: 'Search my Notion workspace' },
+  { icon: DollarSign,     label: 'Crypto prices',       prompt: 'What are the current prices of my crypto holdings?' },
+  { icon: Zap,            label: 'Run a command',        prompt: 'Run a shell command on my machine' },
 ]
 
 interface ChatInterfaceProps {
@@ -264,24 +275,42 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
         </div>
       </ScrollArea>
 
-      {/* Suggestion grid — only on fresh conversation */}
+      {/* Suggestion marquee — only on fresh conversation */}
       {showSuggestions && (
-        <div className="mb-3 grid grid-cols-4 gap-2">
-          {SUGGESTIONS.map((s) => {
-            const Icon = s.icon
-            return (
-              <button
-                key={s.label}
-                type="button"
-                onClick={() => sendMessage(s.prompt)}
-                disabled={isLoading}
-                className="flex flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted disabled:opacity-40"
+        <div className="mb-3 space-y-2">
+          {[
+            { row: ROW1, duration: '40s', direction: 'marquee-left' },
+            { row: ROW2, duration: '50s', direction: 'marquee-right' },
+          ].map(({ row, duration, direction }) => (
+            <div
+              key={direction}
+              className="overflow-hidden"
+              style={{ maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)' }}
+            >
+              <div
+                className="flex w-max gap-2"
+                style={{ animation: `${direction} ${duration} linear infinite` }}
+                onMouseEnter={(e) => ((e.currentTarget as HTMLDivElement).style.animationPlayState = 'paused')}
+                onMouseLeave={(e) => ((e.currentTarget as HTMLDivElement).style.animationPlayState = 'running')}
               >
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs font-medium leading-snug text-foreground">{s.label}</span>
-              </button>
-            )
-          })}
+                {[...row, ...row].map((s, i) => {
+                  const Icon = s.icon
+                  return (
+                    <button
+                      key={`${s.label}-${i}`}
+                      type="button"
+                      onClick={() => sendMessage(s.prompt)}
+                      disabled={isLoading}
+                      className="flex w-36 shrink-0 flex-col gap-2 rounded-xl border border-border bg-card px-3 py-3 text-left transition-colors hover:bg-muted disabled:opacity-40"
+                    >
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs font-medium leading-snug text-foreground">{s.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
