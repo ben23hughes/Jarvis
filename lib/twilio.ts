@@ -10,10 +10,11 @@ export async function sendSms(to: string, body: string): Promise<void> {
     throw new Error('Twilio is not configured')
   }
   const client = getTwilioClient()
+  const fullBody = `${body}\n\nReply STOP to opt out.`
   if (process.env.TWILIO_MESSAGING_SERVICE_SID) {
-    await client.messages.create({ body, to, messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID })
+    await client.messages.create({ body: fullBody, to, messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID })
   } else {
-    await client.messages.create({ body, to, from: process.env.TWILIO_PHONE_NUMBER! })
+    await client.messages.create({ body: fullBody, to, from: process.env.TWILIO_PHONE_NUMBER! })
   }
 }
 
