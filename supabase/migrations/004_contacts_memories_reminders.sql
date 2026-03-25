@@ -118,3 +118,4 @@ CREATE TABLE IF NOT EXISTS meeting_prep_sent (
   sent_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (user_id, event_id)
 );
+i 

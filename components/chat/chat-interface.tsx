@@ -15,7 +15,17 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
   const fullGreeting = `Hi ${userName}, how can I help today?`
   const [greetingText, setGreetingText] = useState('')
   const [greetingDone, setGreetingDone] = useState(false)
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessage[]>(() => {
+    if (typeof window === 'undefined') return []
+    try {
+      const saved = sessionStorage.getItem('jarvis_chat_messages')
+      if (!saved) return []
+      const parsed = JSON.parse(saved) as ChatMessage[]
+      return parsed.map((m) => ({ ...m, createdAt: new Date(m.createdAt) }))
+    } catch {
+      return []
+    }
+  })
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isListening, setIsListening] = useState(false)
@@ -57,8 +67,13 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
     setIsListening(true)
   }, [isListening])
 
-  // Typewriter effect for greeting
+  // Typewriter effect for greeting (skip if restoring a session)
   useEffect(() => {
+    if (messages.length > 0) {
+      setGreetingText(fullGreeting)
+      setGreetingDone(true)
+      return
+    }
     let i = 0
     const interval = setInterval(() => {
       i++
@@ -69,7 +84,14 @@ export function ChatInterface({ userName }: ChatInterfaceProps) {
       }
     }, 35)
     return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullGreeting])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('jarvis_chat_messages', JSON.stringify(messages))
+    } catch {}
+  }, [messages])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })

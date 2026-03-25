@@ -1,6 +1,6 @@
 import { getDeviceByKey, touchDevice } from '@/lib/devices'
 import { getConnectedProviders } from '@/lib/oauth/token-store'
-import { listMemories } from '@/lib/memories'
+import { loadMemoryBundle } from '@/lib/memories'
 import { listGoals } from '@/lib/goals'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { getToolsForConnectedProviders } from '@/lib/ai/tools'
@@ -51,15 +51,15 @@ export async function POST(request: Request) {
 
   const userId = device.user_id
 
-  const [connectedProviders, memories, goals, profile] = await Promise.all([
+  const [connectedProviders, memoryBundle, goals, profile] = await Promise.all([
     getConnectedProviders(userId),
-    listMemories(userId, 20),
+    loadMemoryBundle(userId),
     listGoals(userId),
     getUserProfile(userId),
   ])
 
   const userName = profile?.full_name?.split(' ')[0] ?? 'there'
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories, goals)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memoryBundle, goals)
   const tools = getToolsForConnectedProviders(connectedProviders)
 
   const messages: Anthropic.MessageParam[] = [

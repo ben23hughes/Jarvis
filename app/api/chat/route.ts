@@ -5,7 +5,7 @@ import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { formatToolContent } from '@/lib/ai/tool-result'
-import { listMemories } from '@/lib/memories'
+import { loadMemoryBundle } from '@/lib/memories'
 import { listGoals } from '@/lib/goals'
 import { NextResponse } from 'next/server'
 
@@ -28,13 +28,13 @@ export async function POST(request: Request) {
     .single()
 
   const userName = profile?.full_name?.split(' ')[0] ?? profile?.email?.split('@')[0] ?? 'there'
-  const [connectedProviders, memories, goals] = await Promise.all([
+  const [connectedProviders, memoryBundle, goals] = await Promise.all([
     getConnectedProviders(user.id),
-    listMemories(user.id, 30),
+    loadMemoryBundle(user.id),
     listGoals(user.id, undefined, 'active'),
   ])
   const tools = getToolsForConnectedProviders(connectedProviders)
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories, goals)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memoryBundle, goals)
 
   const encoder = new TextEncoder()
 

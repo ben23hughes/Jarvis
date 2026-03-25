@@ -6,12 +6,13 @@ import { sendSmsToUser } from '@/lib/twilio'
 import { sendEmail } from '@/lib/integrations/gmail'
 import { getOAuthToken } from '@/lib/oauth/token-store'
 import { getConnectedProviders } from '@/lib/oauth/token-store'
-import { listMemories } from '@/lib/memories'
+import { loadMemoryBundle } from '@/lib/memories'
 import { buildSystemPrompt } from '@/lib/ai/system-prompt'
 import { getToolsForConnectedProviders } from '@/lib/ai/tools'
 import { executeTool } from '@/lib/ai/tool-executor'
 import Anthropic from '@anthropic-ai/sdk'
 import { formatToolContent } from '@/lib/ai/tool-result'
+import { logNotification } from '@/lib/notifications'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
@@ -35,13 +36,13 @@ async function getUserProfile(userId: string) {
 }
 
 async function runScheduledPrompt(userId: string, prompt: string): Promise<string> {
-  const [connectedProviders, memories] = await Promise.all([
+  const [connectedProviders, memoryBundle] = await Promise.all([
     getConnectedProviders(userId),
-    listMemories(userId, 20),
+    loadMemoryBundle(userId),
   ])
   const profile = await getUserProfile(userId)
   const userName = profile?.full_name?.split(' ')[0] ?? 'there'
-  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memories)
+  const systemPrompt = buildSystemPrompt(userName, connectedProviders, memoryBundle)
   const tools = getToolsForConnectedProviders(connectedProviders)
 
   const messages: Anthropic.MessageParam[] = [
@@ -110,6 +111,7 @@ export async function GET(request: Request) {
       const text = `Reminder: ${reminder.message}`
       await deliver(reminder.user_id, `⏰ ${text}`, reminder.channel as 'sms' | 'email')
       await pushToAllDevices(reminder.user_id, text, 'reminder').catch(() => null)
+      await logNotification(reminder.user_id, 'reminder', 'Reminder', reminder.message, reminder.channel as 'sms' | 'email').catch(() => null)
       await markReminderSent(reminder.id)
       results.reminders_sent++
     } catch (err) {
@@ -124,6 +126,7 @@ export async function GET(request: Request) {
       const response = await runScheduledPrompt(schedule.user_id, schedule.prompt)
       await deliver(schedule.user_id, response, schedule.channel)
       await pushToAllDevices(schedule.user_id, response, 'schedule').catch(() => null)
+      await logNotification(schedule.user_id, 'schedule', schedule.name, response, schedule.channel as 'sms' | 'email').catch(() => null)
       await markScheduleRan(schedule)
       results.schedules_ran++
     } catch (err) {

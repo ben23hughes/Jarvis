@@ -4,6 +4,8 @@ import { SlackWidget } from '@/components/dashboard/slack-widget'
 import { LinearWidget } from '@/components/dashboard/linear-widget'
 import { BriefingStream } from '@/components/dashboard/briefing-stream'
 import { QuickStats } from '@/components/dashboard/quick-stats'
+import { WeatherWidget } from '@/components/dashboard/weather-widget'
+import { NotificationsWidget } from '@/components/dashboard/notifications-widget'
 import { createClient } from '@/lib/supabase/server'
 import { mergeLayoutConfig } from '@/lib/layout-config'
 import Link from 'next/link'
@@ -52,6 +54,8 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <WeatherWidget />
+        <NotificationsWidget />
         {layout.calendar && <CalendarWidget />}
         {layout.email && <EmailWidget />}
         {layout.slack && <SlackWidget />}
