@@ -11,6 +11,16 @@ import { formatToolContent } from '@/lib/ai/tool-result'
 import { NextResponse } from 'next/server'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+const VOICE_MAX_TOKENS = 220
+const VOICE_RESPONSE_STYLE = [
+  'You are responding to a voice request from the user\'s Jarvis Pi device.',
+  'Your response will be read aloud via text-to-speech.',
+  'Keep replies brief and conversational.',
+  'Default to one sentence.',
+  'Use two short sentences only when needed for clarity.',
+  'Target 8-20 words and stay under 35 words unless the user explicitly asks for more detail.',
+  'No markdown and no bullet lists unless the user asks for a list.',
+].join(' ')
 
 function serviceClient() {
   return createClient(
@@ -66,10 +76,10 @@ export async function POST(request: Request) {
     { role: 'user', content: message },
   ]
 
-  const piSystem = systemPrompt + '\n\nYou are responding to a voice request from the user\'s Jarvis Pi device. Keep responses concise and conversational — they will be read aloud via text-to-speech.'
+  const piSystem = `${systemPrompt}\n\n${VOICE_RESPONSE_STYLE}`
   let response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 512,
+    max_tokens: VOICE_MAX_TOKENS,
     system: [{ type: 'text', text: piSystem, cache_control: { type: 'ephemeral' } }],
     tools,
     messages,
@@ -86,7 +96,7 @@ export async function POST(request: Request) {
     messages.push({ role: 'user', content: toolResults })
     response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
+      max_tokens: VOICE_MAX_TOKENS,
       system: [{ type: 'text', text: piSystem, cache_control: { type: 'ephemeral' } }],
       tools,
       messages,

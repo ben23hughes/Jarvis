@@ -14,7 +14,10 @@ function getPiScript(device: Device, baseUrl: string): string {
   return `#!/usr/bin/env python3
 """
 Jarvis Pi — runs on your Raspberry Pi to connect it to Jarvis.
-Install deps: pip install requests SpeechRecognition pyaudio mpg123
+Pi deps:
+  sudo apt-get update && sudo apt-get install -y python3-pip python3-dev portaudio19-dev mpg123 espeak
+  pip3 install requests SpeechRecognition pyaudio
+ElevenLabs TTS is handled by your Jarvis server (/api/tts), so no ElevenLabs key is needed on the Pi.
 """
 
 import time
@@ -29,7 +32,7 @@ DEVICE_ID  = "${device.id}"
 DEVICE_KEY = "${device.device_key}"
 BASE_URL   = "${baseUrl}"
 WAKE_WORD  = "jarvis"
-VERSION    = "1.0.0"
+VERSION    = "1.1.0"
 
 headers = {"Authorization": f"Bearer {DEVICE_KEY}"}
 
@@ -228,7 +231,7 @@ export function DeviceManager({ initialDevices }: Props) {
         {[
           { n: '1', title: 'Register your Pi', body: 'Add a device here to get a unique API key.' },
           { n: '2', title: 'Run the script', body: 'Copy the Python script onto your Pi and run it.' },
-          { n: '3', title: 'Say "Jarvis"', body: 'Your Pi listens for the wake word and talks back.' },
+          { n: '3', title: 'Say "Jarvis"', body: 'Your Pi listens for the wake word and replies with ElevenLabs voice.' },
         ].map(({ n, title, body }) => (
           <div key={n} className="rounded-lg border bg-card p-4 flex gap-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-bold">
@@ -300,19 +303,25 @@ export function DeviceManager({ initialDevices }: Props) {
               <p className="font-medium">Setup instructions</p>
 
               <div className="rounded-md border bg-muted p-3 space-y-1">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">1 — Install dependencies on your Pi</p>
-                <code className="text-xs font-mono">pip install requests SpeechRecognition pyaudio && sudo apt-get install -y mpg123</code>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">1 - Install dependencies on your Pi</p>
+                <code className="text-xs font-mono">sudo apt-get update && sudo apt-get install -y python3-pip python3-dev portaudio19-dev mpg123 espeak && pip3 install requests SpeechRecognition pyaudio</code>
               </div>
 
               <div className="rounded-md border bg-muted p-3 space-y-1">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">2 — Install espeak (for voice output)</p>
-                <code className="text-xs font-mono">sudo apt-get install espeak</code>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">2 - Save the script</p>
+                <code className="text-xs font-mono">nano jarvis_pi.py</code>
               </div>
 
               <div className="rounded-md border bg-muted p-3 space-y-1">
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">3 — Save and run the script</p>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">3 - Run the script</p>
                 <code className="text-xs font-mono">python3 jarvis_pi.py</code>
               </div>
+
+              <p className="text-xs text-muted-foreground">
+                ElevenLabs runs on your Jarvis server via <code className="font-mono">/api/tts</code>. Make sure
+                <code className="font-mono"> ELEVENLABS_API_KEY </code>
+                is set in your server environment.
+              </p>
             </div>
 
             {/* Script */}
